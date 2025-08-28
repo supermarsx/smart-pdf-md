@@ -40,8 +40,16 @@ Windows batch script to **mass-convert PDF (.pdf) to Markdown (.md)** with smart
 2. Open **Command Prompt** in the folder containing your PDFs, or pass a path.
 3. Run:
 
+On Windows (CMD):
+
 ```bat
-smart-pdf-md.bat [INPUT] [SLICE]
+smart-pdf-md.bat [INPUT] [SLICE] [FLAGS]
+```
+
+On Linux/macOS (bash):
+
+```bash
+bash smart-pdf-md.sh [INPUT] [SLICE] [FLAGS]
 ```
 
 **Arguments**
@@ -67,6 +75,35 @@ smart-pdf-md.bat "C:\Reports\2024\survey.pdf"
 **Output location**
 
 * For each `input.pdf`, the tool writes `input.md` **next to** the PDF (same folder).
+
+### Flags and environment
+
+You can control the conversion path via an environment variable:
+
+- `SMART_PDF_MD_MODE=auto` (default): heuristic routing between PyMuPDF and Marker
+- `SMART_PDF_MD_MODE=fast`: force the fast PyMuPDF path and skip Marker deps
+- `SMART_PDF_MD_MODE=marker`: force Marker path
+
+For CI/tests without heavy dependencies, you can also enable a mock Marker writer:
+
+- `SMART_PDF_MD_MARKER_MOCK=1`: skip calling `marker_single` and instead write a minimal Markdown file next to the PDF, simulating success. Useful to test routing and slice-backoff logic without downloading models.
+
+CLI flags mirror these environment variables and can be appended after `INPUT` and `SLICE`:
+
+- `--mode {auto|fast|marker}`
+- `--out <dir>`
+- `--images` / `--no-images`
+- `--min-chars <N>` / `--min-ratio <F>`
+- `--mock` / `--mock-fail`
+
+### More environment knobs
+
+- `SMART_PDF_MD_OUTPUT_DIR`: write all `.md` outputs into this directory (created if missing).
+- `SMART_PDF_MD_IMAGES=1`: enable image extraction in the Marker path (by default it’s disabled).
+- `SMART_PDF_MD_TEXT_MIN_CHARS`: per-page text threshold for the “textual” heuristic (default `100`).
+- `SMART_PDF_MD_TEXT_MIN_RATIO`: min ratio of pages that must pass `MIN_CHARS` (default `0.2`).
+- `SMART_PDF_MD_MARKER_MOCK_FAIL=1`: with mock enabled, simulate Marker failure to test non-zero exits and backoff paths.
+- `SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT=<N>`: with mock enabled, fail any slice whose size is greater than `N`; useful to exercise slice backoff logic.
 
 ---
 
@@ -161,6 +198,37 @@ The Marker path is configured for **Markdown text only** by default. If you want
 6. **Output**: `.md` written next to the PDF.
 
 
+## Development
+
+- Prereqs: Python 3.11+ with pip. On macOS/Linux, bash for `smart-pdf-md.sh`.
+- Install dev deps: `python -m pip install -r requirements-dev.txt`
+- Lint: `python -m ruff check .`
+- Test (uses PyMuPDF + mocked Marker): `python -m pytest -q`
+- Optional: run scripts directly with mock path:
+  - Windows: `smart-pdf-md.bat . 5 --mock`
+  - macOS/Linux: `bash smart-pdf-md.sh . 5 --mock`
+
+Notes
+- Tests and CI mock the Marker path to avoid large downloads and GPU needs.
+- PyMuPDF deprecation warnings are filtered in test runs (see `pyproject.toml`).
+
+
+## Continuous Integration
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) covers:
+
+- Lint job (Ubuntu): ruff across repo and ShellCheck on the bash script.
+- Test matrix across Windows, Ubuntu, macOS and Python 3.10–3.13.
+- Pip caching to speed up repeated runs.
+- Script smoke tests: runs `.bat` or `.sh` end-to-end in mock mode and asserts output exists.
+
+Environment in CI
+- `SMART_PDF_MD_MARKER_MOCK=1` avoids heavy model downloads while still exercising routing/backoff logic.
+
+Troubleshooting CI
+- If PyMuPDF wheels are temporarily unavailable for a brand-new Python patch release, pin Python to a prior minor/patch version until wheels publish.
+- If ShellCheck isn’t available on a forked macOS runner, the lint job on Ubuntu is sufficient.
+
 ## Best practices & tips
 
 * **No GPU?** Set `TORCH_DEVICE=cpu` in the `.bat` to avoid CUDA initialization errors.
@@ -180,6 +248,34 @@ The Marker path is configured for **Markdown text only** by default. If you want
 ### Adjusting the “textual” heuristic (advanced)
 
 Inside the generated driver, the function `is_textual(pdf, min_chars_per_page=100, min_ratio=0.2)` controls routing. You can raise `min_chars_per_page` or `min_ratio` to send more borderline documents through Marker.
+
+## Development
+
+- Tests: use `pytest`. CI runs on Windows, Ubuntu, and macOS.
+- Fast-path e2e tests set `SMART_PDF_MD_MODE=fast` to avoid heavy Marker downloads.
+
+Quick local run:
+
+```bash
+python -m pip install -r requirements-dev.txt
+set SMART_PDF_MD_MODE=fast
+pytest -q
+```
+
+To exercise Marker routing in tests without installing Marker/models:
+
+```bash
+set SMART_PDF_MD_MARKER_MOCK=1
+pytest -q
+```
+
+To verify non-zero exit behavior in CI without Marker/models:
+
+```bash
+set SMART_PDF_MD_MARKER_MOCK=1
+set SMART_PDF_MD_MARKER_MOCK_FAIL=1
+pytest -q
+```
 
 
 ## Contributing

@@ -1,0 +1,19 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["tests"]
+exclude = [
+  ".git",
+  "__pycache__",
+  ".pytest_cache",
+  ".ruff_cache",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+filterwarnings = [
+  "ignore:builtin type SwigPyPacked has no __module__ attribute:DeprecationWarning",
+  "ignore:builtin type SwigPyObject has no __module__ attribute:DeprecationWarning",
+  "ignore:builtin type swigvarlink has no __module__ attribute:DeprecationWarning",
+]
+

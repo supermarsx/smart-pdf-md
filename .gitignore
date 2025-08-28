@@ -1,0 +1,21 @@
+# Bytecode and caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Outputs and temp files
+*.md~
+{out}
+fast
+marker_single')
+MOCK_FAIL_IF_SLICE_GT)
+PyMuPDF')
+
+# Editors
+.vscode/
+.idea/
