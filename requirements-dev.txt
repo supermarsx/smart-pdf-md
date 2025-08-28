@@ -1,3 +1,5 @@
 pytest
+pytest-cov
+coverage
 pymupdf
 ruff

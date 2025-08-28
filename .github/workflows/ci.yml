@@ -64,11 +64,12 @@ jobs:
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"
         run: |
-          python -m pytest -q
-      - name: Script smoke (mock) - non-Windows
+          python -m pytest -q --cov=tests --cov-report=term-missing --cov-report=xml:coverage.pytest.xml
+      - name: Script smoke (mock) - non-Windows (with coverage)
         if: runner.os != 'Windows'
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"
+          SMART_PDF_MD_COVERAGE: "1"
         run: |
           python - <<'PY'
 import sys
@@ -79,10 +80,11 @@ doc = fitz.open(); doc.new_page(); doc.save(p); doc.close()
 PY
           bash smart-pdf-md.sh smoke.pdf 5 --mock
           test -f smoke.md
-      - name: Script smoke (mock) - Windows
+      - name: Script smoke (mock) - Windows (with coverage)
         if: runner.os == 'Windows'
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"
+          SMART_PDF_MD_COVERAGE: "1"
         shell: pwsh
         run: |
           python - <<'PY'
@@ -94,3 +96,18 @@ doc = fitz.open(); doc.new_page(); doc.save(p); doc.close()
 PY
           .\smart-pdf-md.bat smoke.pdf 5 --mock
           if (-not (Test-Path smoke.md)) { exit 1 }
+      - name: Combine coverage and create reports
+        run: |
+          python -m coverage combine || true
+          python -m coverage xml -i -o coverage.xml
+          python -m coverage html -i -d coverage_html
+          python -m coverage report -m | tee coverage.txt
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}-py${{ matrix.python }}
+          path: |
+            coverage.xml
+            coverage.pytest.xml
+            coverage_html
+            coverage.txt

@@ -1,5 +1,10 @@
 # smart-pdf-md
 
+[![CI](https://github.com/supermarsx/smart-pdf-md/actions/workflows/ci.yml/badge.svg)](https://github.com/supermarsx/smart-pdf-md/actions/workflows/ci.yml)
+<!-- Coverage badge (enable Codecov in repo to activate)
+[![codecov](https://codecov.io/gh/supermarsx/smart-pdf-md/branch/main/graph/badge.svg)](https://codecov.io/gh/supermarsx/smart-pdf-md)
+-->
+
 Windows batch script to **mass-convert PDF (.pdf) to Markdown (.md)** with smart routing:
 
 * **Textual PDFs →** fast text extraction via **PyMuPDF** (fitz)
@@ -219,11 +224,16 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) covers:
 
 - Lint job (Ubuntu): ruff across repo and ShellCheck on the bash script.
 - Test matrix across Windows, Ubuntu, macOS and Python 3.10–3.13.
-- Pip caching to speed up repeated runs.
+- Pip caching to speed up repeated runs and concurrency control.
 - Script smoke tests: runs `.bat` or `.sh` end-to-end in mock mode and asserts output exists.
+- Coverage: publishes `coverage.xml`, an HTML report, and a summary artifact per matrix axis.
 
 Environment in CI
 - `SMART_PDF_MD_MARKER_MOCK=1` avoids heavy model downloads while still exercising routing/backoff logic.
+
+Coverage locally
+- Run: `python -m pytest -q --cov=tests --cov-report=term-missing --cov-report=xml:coverage.pytest.xml`
+- For script path coverage (driver), set `SMART_PDF_MD_COVERAGE=1` when running the scripts; e.g., `SMART_PDF_MD_COVERAGE=1 bash smart-pdf-md.sh file.pdf 5 --mock`.
 
 Troubleshooting CI
 - If PyMuPDF wheels are temporarily unavailable for a brand-new Python patch release, pin Python to a prior minor/patch version until wheels publish.

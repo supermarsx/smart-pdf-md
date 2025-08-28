@@ -297,8 +297,10 @@ for /f "usebackq tokens=1* delims=:" %%A in (`findstr /n /r "^" "%PYDRV%"`) do (
 )
 
 rem ===== Run driver =====
-echo [run ] python "%PYDRV%" "%INPUT%" %SLICE%
-python "%PYDRV%" "%INPUT%" %SLICE%
+set "_PYEXEC=python"
+if "%SMART_PDF_MD_COVERAGE%"=="1" set "_PYEXEC=python -m coverage run -p"
+echo [run ] %_PYEXEC% "%PYDRV%" "%INPUT%" %SLICE%
+%_PYEXEC% "%PYDRV%" "%INPUT%" %SLICE%
 set "RC=%ERRORLEVEL%"
 echo [exit] Driver returned %RC%
 

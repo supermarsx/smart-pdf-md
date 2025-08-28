@@ -263,9 +263,11 @@ py_compile.compile(r"$PYDRV", doraise=True)
 print("[lint] OK")
 PY
 
-echo "[run ] python \"$PYDRV\" \"$INPUT\" $SLICE"
+PY_EXEC="python"
+if [[ "${SMART_PDF_MD_COVERAGE:-0}" == "1" ]]; then PY_EXEC="python -m coverage run -p"; fi
+echo "[run ] $PY_EXEC \"$PYDRV\" \"$INPUT\" $SLICE"
 set +e
-python "$PYDRV" "$INPUT" "$SLICE"
+$PY_EXEC "$PYDRV" "$INPUT" "$SLICE"
 RC=$?
 set -e
 echo "[exit] Driver returned $RC"
