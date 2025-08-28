@@ -3,3 +3,4 @@ pytest-cov
 coverage
 pymupdf
 ruff
+genbadge[coverage]
