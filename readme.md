@@ -1,6 +1,7 @@
 # smart-pdf-md
 
 [![CI](https://github.com/supermarsx/smart-pdf-md/actions/workflows/ci.yml/badge.svg)](https://github.com/supermarsx/smart-pdf-md/actions/workflows/ci.yml)
+[![Coverage](badges/coverage.svg)](docs/coverage.md)
 <!-- Coverage badge (enable Codecov in repo to activate)
 [![codecov](https://codecov.io/gh/supermarsx/smart-pdf-md/branch/main/graph/badge.svg)](https://codecov.io/gh/supermarsx/smart-pdf-md)
 -->
