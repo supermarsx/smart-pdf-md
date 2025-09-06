@@ -55,14 +55,20 @@ def try_open(pdf):
 
 def is_textual(pdf, min_chars_per_page=MIN_CHARS, min_ratio=MIN_RATIO):
     doc = try_open(pdf)
-    if not doc or len(doc) == 0:
+    if not doc:
         return False
-    text_pages = 0
-    for page in doc:
-        t = page.get_text("text")
-        if t and len("".join(t.split())) >= min_chars_per_page:
-            text_pages += 1
-    return (text_pages / len(doc)) >= min_ratio
+    try:
+        total = len(doc)
+        if total == 0:
+            return False
+        text_pages = 0
+        for page in doc:
+            t = page.get_text("text")
+            if t and len("".join(t.split())) >= min_chars_per_page:
+                text_pages += 1
+        return (text_pages / total) >= min_ratio
+    finally:
+        doc.close()
 
 
 def convert_text(pdf, outdir):
@@ -70,8 +76,13 @@ def convert_text(pdf, outdir):
         log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
         return 1
     t0 = time.perf_counter()
-    doc = fitz.open(pdf)
-    parts = [p.get_text("text") for p in doc]
+    doc = try_open(pdf)
+    if not doc:
+        return 1
+    try:
+        parts = [p.get_text("text") for p in doc]
+    finally:
+        doc.close()
     out = Path(outdir) / (Path(pdf).stem + ".md")
     out.write_text("\n\n".join(parts), encoding="utf-8")
     log(f"[TEXT ] {pdf} -> {out}  ({time.perf_counter() - t0:.2f}s)")
