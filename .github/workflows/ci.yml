@@ -38,9 +38,30 @@ jobs:
           shellcheck --version
           shellcheck smart-pdf-md.sh
 
+  format:
+    name: Format
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements-dev.txt
+      - name: Install format deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements-dev.txt
+      - name: Ruff format
+        run: |
+          python -m ruff format --check .
+
   test:
     name: Test (${{ matrix.os }} / py${{ matrix.python }})
-    needs: lint
+    needs: format
     strategy:
       fail-fast: false
       matrix:
@@ -138,3 +159,31 @@ PY
             coverage.pytest.xml
             coverage_html
             coverage.txt
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: test
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install PyInstaller
+        run: |
+          python -m pip install -U pip
+          python -m pip install pyinstaller
+      - name: Build binary
+        run: |
+          pyinstaller smart_pdf_md_driver.py --onefile -n smart-pdf-md
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smart-pdf-md-${{ matrix.os }}
+          path: dist/smart-pdf-md*
