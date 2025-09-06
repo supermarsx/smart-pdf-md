@@ -51,11 +51,7 @@ if ! command -v python >/dev/null 2>&1; then echo "[FATAL] Python not found on P
 if ! python -m pip --version >/dev/null 2>&1; then echo "[FATAL] pip not available"; exit 1; fi
 
 echo "[deps] Checking PyMuPDF..."
-if ! python - <<'PY' >/dev/null 2>&1; then
-import importlib.util,sys
-sys.exit(0 if importlib.util.find_spec('fitz') else 1)
-PY
-then
+if ! python -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('fitz') else 1)" >/dev/null 2>&1; then
   echo "[deps] Installing PyMuPDF ..."
   python -m pip install -q pymupdf || { echo "[FATAL] pip install pymupdf failed"; exit 1; }
 else
@@ -64,11 +60,7 @@ fi
 
 if [[ "${MODE,,}" != "fast" ]]; then
   echo "[deps] Checking marker-pdf..."
-  if ! python - <<'PY' >/dev/null 2>&1; then
-import importlib.util,sys
-sys.exit(0 if importlib.util.find_spec('marker') else 1)
-PY
-  then
+  if ! python -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('marker') else 1)" >/dev/null 2>&1; then
     echo "[deps] Installing marker-pdf ..."
     python -m pip install -q marker-pdf || { echo "[FATAL] pip install marker-pdf failed"; exit 1; }
   else

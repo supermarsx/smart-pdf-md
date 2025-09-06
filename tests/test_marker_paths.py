@@ -7,6 +7,7 @@ from pathlib import Path
 def ensure_pymupdf():
     try:
         import importlib.util  # noqa: F401
+
         if importlib.util.find_spec("fitz") is None:
             raise ImportError
     except Exception:
@@ -23,7 +24,9 @@ def make_blank_pdf(path: Path) -> None:
     doc.close()
 
 
-def run_batch(input_path: Path, *, env: dict | None = None, slice_pages: int = 40) -> subprocess.CompletedProcess:
+def run_batch(
+    input_path: Path, *, env: dict | None = None, slice_pages: int = 40
+) -> subprocess.CompletedProcess:
     root = Path(__file__).resolve().parents[1]
     if os.name == "nt":
         script = root / "smart-pdf-md.bat"
