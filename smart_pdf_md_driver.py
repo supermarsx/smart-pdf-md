@@ -5,7 +5,13 @@ import sys
 import time
 from pathlib import Path
 
-import fitz
+try:  # PyMuPDF is optional for build environments
+    import fitz  # type: ignore
+except Exception as e:  # pragma: no cover - best effort
+    fitz = None  # type: ignore[assignment]
+    FITZ_IMPORT_ERROR = e
+else:
+    FITZ_IMPORT_ERROR = None
 
 LOWRES = 96
 HIGHRES = 120
@@ -37,6 +43,9 @@ def which_marker_single():
 
 
 def try_open(pdf):
+    if not fitz:
+        log(f"[WARN ] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
+        return None
     try:
         return fitz.open(pdf)
     except Exception as e:
@@ -57,12 +66,16 @@ def is_textual(pdf, min_chars_per_page=MIN_CHARS, min_ratio=MIN_RATIO):
 
 
 def convert_text(pdf, outdir):
+    if not fitz:
+        log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
+        return 1
     t0 = time.perf_counter()
     doc = fitz.open(pdf)
     parts = [p.get_text("text") for p in doc]
     out = Path(outdir) / (Path(pdf).stem + ".md")
     out.write_text("\n\n".join(parts), encoding="utf-8")
     log(f"[TEXT ] {pdf} -> {out}  ({time.perf_counter() - t0:.2f}s)")
+    return 0
 
 
 def marker_single_pass(pdf, outdir):
@@ -151,15 +164,13 @@ def process_one(pdf, idx, total, slice_pages):
     try:
         if MODE == "fast":
             log("[path ] FORCED FAST -> PyMuPDF")
-            convert_text(str(pdf), str(outdir))
-            return 0
+            return convert_text(str(pdf), str(outdir))
         if MODE == "marker":
             log("[path ] FORCED MARKER -> marker_single")
             return marker_convert(str(pdf), str(outdir), slice_pages)
         if is_textual(str(pdf)):
             log("[path ] TEXTUAL -> fast PyMuPDF")
-            convert_text(str(pdf), str(outdir))
-            return 0
+            return convert_text(str(pdf), str(outdir))
         log("[path ] NON-TEXTUAL -> marker_single")
         return marker_convert(str(pdf), str(outdir), slice_pages)
     except Exception as e:
