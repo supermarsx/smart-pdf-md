@@ -39,7 +39,26 @@ def mock_write_markdown(pdf, outdir, note):
 
 def which_marker_single():
     p = shutil.which("marker_single")
-    return [p] if p else [sys.executable, "-m", "marker.scripts.convert_single"]
+    if p:
+        return [p]
+    if getattr(sys, "frozen", False):
+        env = os.environ.get("SMART_PDF_MD_PYTHON")
+        candidates = [env] if env else []
+        base = getattr(sys, "_base_executable", None)
+        if base and Path(base).exists():
+            candidates.append(base)
+        exe = Path(sys.executable)
+        candidates += [
+            shutil.which("python3"),
+            shutil.which("python"),
+            shutil.which("py"),
+            exe.with_name("python"),
+            exe.with_name("python3"),
+        ]
+        for c in candidates:
+            if c and Path(c).exists():
+                return [str(c), "-m", "marker.scripts.convert_single"]
+    return [sys.executable, "-m", "marker.scripts.convert_single"]
 
 
 def try_open(pdf):
