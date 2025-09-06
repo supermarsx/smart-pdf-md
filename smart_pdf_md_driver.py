@@ -164,15 +164,13 @@ def process_one(pdf, idx, total, slice_pages):
     try:
         if MODE == "fast":
             log("[path ] FORCED FAST -> PyMuPDF")
-            convert_text(str(pdf), str(outdir))
-            return 0
+            return convert_text(str(pdf), str(outdir))
         if MODE == "marker":
             log("[path ] FORCED MARKER -> marker_single")
             return marker_convert(str(pdf), str(outdir), slice_pages)
         if is_textual(str(pdf)):
             log("[path ] TEXTUAL -> fast PyMuPDF")
-            convert_text(str(pdf), str(outdir))
-            return 0
+            return convert_text(str(pdf), str(outdir))
         log("[path ] NON-TEXTUAL -> marker_single")
         return marker_convert(str(pdf), str(outdir), slice_pages)
     except Exception as e:
