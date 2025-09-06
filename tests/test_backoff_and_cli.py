@@ -7,6 +7,7 @@ from pathlib import Path
 def ensure_pymupdf():
     try:
         import importlib.util  # noqa: F401
+
         if importlib.util.find_spec("fitz") is None:
             raise ImportError
     except Exception:
@@ -44,7 +45,9 @@ def test_cli_flags_mode_out_and_images(tmp_path: Path):
     outdir = tmp_path / "cli-out"
     make_blank_pdf(pdf)
     # Force marker path with mock using CLI flags only
-    res = run_batch_args([str(pdf), "40", "--mode", "marker", "--mock", "--out", str(outdir), "--images"], env={})
+    res = run_batch_args(
+        [str(pdf), "40", "--mode", "marker", "--mock", "--out", str(outdir), "--images"], env={}
+    )
     assert res.returncode == 0, res.stdout
     assert (outdir / "c.md").exists()
 
@@ -54,10 +57,13 @@ def test_slice_backoff_with_mock_threshold(tmp_path: Path):
     pdf = tmp_path / "d.pdf"
     make_blank_pdf(pdf)
     # Start with large slice, fail slices > 10, expect backoff to <=10 and succeed
-    res = run_batch_args([str(pdf), "40"], env={
-        "SMART_PDF_MD_MARKER_MOCK": "1",
-        "SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT": "10",
-        # Ensure we are on marker path (blank pdf should route there automatically)
-    })
+    res = run_batch_args(
+        [str(pdf), "40"],
+        env={
+            "SMART_PDF_MD_MARKER_MOCK": "1",
+            "SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT": "10",
+            # Ensure we are on marker path (blank pdf should route there automatically)
+        },
+    )
     assert res.returncode == 0, res.stdout
     assert (tmp_path / "d.md").exists()

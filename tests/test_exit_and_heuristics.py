@@ -7,6 +7,7 @@ from pathlib import Path
 def ensure_pymupdf():
     try:
         import importlib.util  # noqa: F401
+
         if importlib.util.find_spec("fitz") is None:
             raise ImportError
     except Exception:
@@ -52,10 +53,13 @@ def test_heuristics_force_fast_on_blank_pdf(tmp_path: Path):
     md = tmp_path / "blank.md"
     make_blank_pdf(pdf)
     # Default heuristic would route to marker; lower the ratio to 0 to force "textual"
-    res = run_script([str(pdf), "40"], env={
-        "SMART_PDF_MD_TEXT_MIN_RATIO": "0",
-        "SMART_PDF_MD_MODE": "auto",
-    })
+    res = run_script(
+        [str(pdf), "40"],
+        env={
+            "SMART_PDF_MD_TEXT_MIN_RATIO": "0",
+            "SMART_PDF_MD_MODE": "auto",
+        },
+    )
     assert res.returncode == 0
     assert md.exists(), "Fast path should write an md even for blank (empty content)"
 
@@ -65,8 +69,11 @@ def test_min_slice_failure_exit2(tmp_path: Path):
     pdf = tmp_path / "scan.pdf"
     make_blank_pdf(pdf, pages=7)
     # With mock, fail any slice > 4; initial slice 5 triggers min-slice failure when cur=5
-    res = run_script([str(pdf), "5"], env={
-        "SMART_PDF_MD_MARKER_MOCK": "1",
-        "SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT": "4",
-    })
+    res = run_script(
+        [str(pdf), "5"],
+        env={
+            "SMART_PDF_MD_MARKER_MOCK": "1",
+            "SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT": "4",
+        },
+    )
     assert res.returncode == 2

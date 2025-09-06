@@ -7,6 +7,7 @@ from pathlib import Path
 def ensure_pymupdf():
     try:
         import importlib.util  # noqa: F401
+
         if importlib.util.find_spec("fitz") is None:
             raise ImportError
     except Exception:
@@ -34,7 +35,9 @@ def make_blank_pdf(path: Path) -> None:
     doc.close()
 
 
-def run_batch(input_path: Path, *, env: dict | None = None, slice_pages: int = 40) -> subprocess.CompletedProcess:
+def run_batch(
+    input_path: Path, *, env: dict | None = None, slice_pages: int = 40
+) -> subprocess.CompletedProcess:
     root = Path(__file__).resolve().parents[1]
     if os.name == "nt":
         script = root / "smart-pdf-md.bat"
@@ -54,7 +57,9 @@ def test_output_dir_fast_mode(tmp_path: Path):
     pdf = tmp_path / "x.pdf"
     outdir = tmp_path / "out"
     make_text_pdf(pdf)
-    result = run_batch(pdf, env={"SMART_PDF_MD_MODE": "fast", "SMART_PDF_MD_OUTPUT_DIR": str(outdir)})
+    result = run_batch(
+        pdf, env={"SMART_PDF_MD_MODE": "fast", "SMART_PDF_MD_OUTPUT_DIR": str(outdir)}
+    )
     assert result.returncode == 0, result.stdout
     md = outdir / "x.md"
     assert md.exists(), "Output not written to custom outdir"
@@ -64,5 +69,7 @@ def test_mock_marker_failure_sets_nonzero_exit(tmp_path: Path):
     """Mocked marker failure should produce a non-zero exit in auto routing."""
     pdf = tmp_path / "y.pdf"
     make_blank_pdf(pdf)
-    result = run_batch(pdf, env={"SMART_PDF_MD_MARKER_MOCK": "1", "SMART_PDF_MD_MARKER_MOCK_FAIL": "1"})
+    result = run_batch(
+        pdf, env={"SMART_PDF_MD_MARKER_MOCK": "1", "SMART_PDF_MD_MARKER_MOCK_FAIL": "1"}
+    )
     assert result.returncode != 0, "Expected non-zero exit when mock marker fails"

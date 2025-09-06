@@ -6,6 +6,7 @@ from pathlib import Path
 def ensure_pymupdf():
     try:
         import importlib.util  # noqa: F401
+
         if importlib.util.find_spec("fitz") is None:
             raise ImportError
     except Exception:
@@ -62,10 +63,13 @@ def test_first_nonzero_exitcode_selected(tmp_path: Path):
     make_text_pdf(good, "Some Text")
     bad.write_bytes(b"%PDF-1.4\n% not actually valid content")  # unopenable -> single-pass
 
-    res = run_script([str(tmp_path), "40"], env={
-        "SMART_PDF_MD_MARKER_MOCK": "1",
-        "SMART_PDF_MD_MARKER_MOCK_FAIL": "1",  # fail marker always
-    })
+    res = run_script(
+        [str(tmp_path), "40"],
+        env={
+            "SMART_PDF_MD_MARKER_MOCK": "1",
+            "SMART_PDF_MD_MARKER_MOCK_FAIL": "1",  # fail marker always
+        },
+    )
     # First non-zero will come from the first file that routes to marker and fails at min-slice/single-pass
     assert res.returncode in (2, 3)
 
@@ -77,11 +81,14 @@ def test_cli_min_chars_and_ratio_force_fast(tmp_path: Path):
     # Create a valid, but effectively blank, PDF
     ensure_pymupdf()
     import fitz  # type: ignore
+
     doc = fitz.open()
     doc.new_page()
     doc.save(pdf)
     doc.close()
     # Heuristic flags should push to fast path even with no text
-    res = run_script([str(pdf), "40", "--min-chars", "1", "--min-ratio", "0", "--mode", "auto"], env={})
+    res = run_script(
+        [str(pdf), "40", "--min-chars", "1", "--min-ratio", "0", "--mode", "auto"], env={}
+    )
     assert res.returncode == 0
     assert md.exists()
