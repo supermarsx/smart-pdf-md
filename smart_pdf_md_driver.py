@@ -121,6 +121,7 @@ def marker_convert(pdf, outdir, slice_pages):
         log("[OK   ] single-pass done")
         return 0
     total = len(doc)
+    doc.close()
     start = 0
     cur = int(slice_pages)
     log(f"[MRK_S] total_pages={total} slice={cur} dpi={LOWRES}/{HIGHRES}")
