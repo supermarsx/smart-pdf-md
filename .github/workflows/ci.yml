@@ -175,10 +175,10 @@ PY
         with:
           python-version: '3.11'
           cache: 'pip'
-      - name: Install PyInstaller
+      - name: Install dependencies
         run: |
           python -m pip install -U pip
-          python -m pip install pyinstaller
+          python -m pip install pyinstaller pymupdf marker-pdf
       - name: Build binary
         run: |
           pyinstaller smart_pdf_md_driver.py --onefile -n smart-pdf-md
