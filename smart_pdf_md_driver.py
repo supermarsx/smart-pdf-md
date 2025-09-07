@@ -58,6 +58,7 @@ def which_marker_single():
         for c in candidates:
             if c and Path(c).exists():
                 return [str(c), "-m", "marker.scripts.convert_single"]
+        raise RuntimeError("no Python interpreter found for marker fallback")
     return [sys.executable, "-m", "marker.scripts.convert_single"]
 
 
