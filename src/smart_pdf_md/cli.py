@@ -25,7 +25,9 @@ def _compute_version() -> str:
         if not os.path.isdir(git_dir):
             return base
         sha = (
-            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL)
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+            )
             .decode()
             .strip()
         )
@@ -137,9 +139,21 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show incremental progress (pages, slices) while processing",
     )
-    p.add_argument("-q", "--quiet", action="store_true", help="Set log level to ERROR (overridden by --log-level)")
-    p.add_argument("-v", "--verbose", action="store_true", help="Set log level to DEBUG (overridden by --log-level)")
-    p.add_argument("--log-json", action="store_true", help="Emit logs as JSON lines (ts, level, message)")
+    p.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Set log level to ERROR (overridden by --log-level)",
+    )
+    p.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Set log level to DEBUG (overridden by --log-level)",
+    )
+    p.add_argument(
+        "--log-json", action="store_true", help="Emit logs as JSON lines (ts, level, message)"
+    )
     p.add_argument("--log-file", help="Append logs to a file (1MB simple rotation)")
     p.add_argument(
         "-w",
@@ -148,13 +162,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not warn when encountering unknown environment keys",
     )
     # Reliability knobs
-    p.add_argument("-t", "--timeout", type=int, dest="timeout", help="Marker subprocess timeout (seconds)")
-    p.add_argument("-x", "--retries", type=int, dest="retries", help="Retries for marker subprocess")
+    p.add_argument(
+        "-t", "--timeout", type=int, dest="timeout", help="Marker subprocess timeout (seconds)"
+    )
+    p.add_argument(
+        "-x", "--retries", type=int, dest="retries", help="Retries for marker subprocess"
+    )
     # Resume/skip existing
-    p.add_argument("-R", "--resume", action="store_true", help="Skip PDFs whose outputs already exist")
+    p.add_argument(
+        "-R", "--resume", action="store_true", help="Skip PDFs whose outputs already exist"
+    )
     # First-run checklist
-    p.add_argument("-D", "--check-deps", action="store_true", help="Check and optionally install missing dependencies")
-    p.add_argument("-y", "--yes", action="store_true", help="Assume yes for dependency prompts when using --check-deps")
+    p.add_argument(
+        "-D",
+        "--check-deps",
+        action="store_true",
+        help="Check and optionally install missing dependencies",
+    )
+    p.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Assume yes for dependency prompts when using --check-deps",
+    )
     return p
 
 
@@ -372,6 +402,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
-
-
-

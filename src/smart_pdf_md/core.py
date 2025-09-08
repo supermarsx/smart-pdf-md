@@ -153,11 +153,14 @@ def log(msg: str, level: str = "INFO") -> None:
         import json as _json
         from datetime import datetime, timezone
 
-        out = _json.dumps({
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "level": level.upper(),
-            "message": msg,
-        }, ensure_ascii=False)
+        out = _json.dumps(
+            {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "level": level.upper(),
+                "message": msg,
+            },
+            ensure_ascii=False,
+        )
     print(out, flush=True)
     if LOG_FILE:
         p = Path(LOG_FILE)
@@ -429,4 +432,3 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
     except Exception as e:  # pragma: no cover - safety
         log(f"[FALL ] unhandled error: {e!r}", level="ERROR")
         return 9
-
