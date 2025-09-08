@@ -35,7 +35,19 @@ The tool inspects each PDF. If enough pages contain real text, it uses PyMuPDF (
 * **Slice processing** for large docs with progressive backoff on errors
 * **Inline logging** with consistent tags (`[scan]`, `[file]`, `[path]`, `[OK]`, `[WARN]`, `[ERROR]`…)
 * **Zero setup** beyond having Python + pip on PATH (Windows)
-* **UTF‑8 console** (uses `chcp 65001`)
+* **UTF-8 console** (uses `chcp 65001`)
+
+### Available engines (-e/--engine)
+
+- `fast` / `pymupdf`: PyMuPDF plain text to Markdown
+- `marker`: Marker single-file converter with slice backoff
+- `poppler` / `poppler-html2md` / `html2md`: Poppler `pdftohtml` + `markdownify`
+- `pdfminer`: `pdfminer.six` high-level text extraction
+- `pdfplumber`: page-wise text via pdfplumber
+- `layout` / `pymupdf4llm`: PyMuPDF4LLM layout-aware Markdown
+- `docling`: IBM Docling Markdown conversion
+- `ocrmypdf` / `ocr`: OCRmyPDF adds a text layer, then fast path
+- `lattice`: fast path plus Camelot table extraction using lattice flavor
 
 > **Note:** Image extraction in the Marker path is **disabled by default**; output focuses on Markdown text.
 
@@ -92,6 +104,7 @@ smart-pdf-md "./reports/2024/survey.pdf" 40
 Common environment keys (CLI flags are usually better):
 - SMART_PDF_MD_MODE (auto|fast|marker), SMART_PDF_MD_OUTPUT_DIR, SMART_PDF_MD_IMAGES.
 - SMART_PDF_MD_TEXT_MIN_CHARS, SMART_PDF_MD_TEXT_MIN_RATIO.
+- SMART_PDF_MD_ENGINE (force engine), SMART_PDF_MD_TABLES=1, SMART_PDF_MD_TABLES_FLAVOR=(stream|lattice|auto).
 - Marker/Torch: TORCH_DEVICE, OCR_ENGINE, PYTORCH_CUDA_ALLOC_CONF, CUDA_VISIBLE_DEVICES.
 
 ## Logs
@@ -117,6 +130,9 @@ Short options
 - -o, --out DIR: output directory
 - --output-format {md,txt}: fast-path output extension (marker remains markdown)
 - -i, --images / -I, --no-images: toggle image extraction for Marker path
+- -e, --engine {auto,fast,marker,poppler,pdfminer,pdfplumber,layout,docling,ocr,lattice}
+- --tables: extract tables to `<stem>.tables.md` via Camelot
+- --tables-mode {auto,stream,lattice}: Camelot mode (auto tries lattice then stream)
 - -c, --min-chars INT: min chars/page to treat as textual
 - -r, --min-ratio FLOAT: min ratio of textual pages
 - -S, --include GLOB: include pattern(s) when scanning a folder (repeatable)
@@ -141,7 +157,7 @@ python smart-pdf-md.py . 40 -m marker -M -o out -i -p --output-format md \
 
 ## Build & Test Matrix
 
-- Tests (CI): Ubuntu (ubuntu-latest) with Python 3.11
+- Tests (CI): Ubuntu (ubuntu-latest) on Python 3.11, 3.12, 3.13
 - Builds (CI): Windows, Ubuntu, macOS (one-file binaries)
 - Releases (GH Releases):
   - Linux: x86_64 (ubuntu-latest), ARM64 (ubuntu-22.04-arm64)
@@ -174,6 +190,30 @@ Install for development:
 python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 ```
+
+### Optional extras
+
+- Layout-aware Markdown (PyMuPDF4LLM): `pip install '.[layout]'`
+- Docling engine: `pip install '.[docling]'`
+- Poppler+html2md: `pip install '.[poppler]'` (requires Poppler `pdftohtml` on PATH)
+- Tables extraction (Camelot): `pip install '.[tables]'`
+  - Stream mode works with pure Python
+  - Lattice mode requires Ghostscript and OpenCV (via `camelot-py[cv]`)
+- OCR layer: `pip install '.[ocr]'` and install OCRmyPDF (and Tesseract) system-wide
+
+### System dependencies
+
+- Poppler: install `pdftohtml` (e.g., `apt-get install poppler-utils`, `brew install poppler`, Windows: Poppler binaries on PATH)
+- OCRmyPDF: install OCRmyPDF and Tesseract (`apt-get install ocrmypdf tesseract-ocr`, `brew install ocrmypdf tesseract`)
+- Camelot lattice: install Ghostscript (`apt-get install ghostscript`, `brew install ghostscript`, Windows: install Ghostscript and ensure `gswin64c.exe` on PATH)
+
+## CI speed-ups and binary checks
+
+- Pip caching covers requirements*.in/txt and pyproject.toml
+- Optional `USE_UV=1` enables the `uv` installer for faster setup
+- Optional `ENABLE_OCR_SMOKE=1` runs an OCR smoke test when OCRmyPDF is available
+- PyInstaller bundles PyMuPDF resources via `--collect-all fitz`
+- CI validates fast-path extraction on a generated PDF (table-like lines + embedded image)
 
 ## Troubleshooting
 

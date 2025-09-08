@@ -40,7 +40,7 @@ layout = [
   "pymupdf4llm",
 ]
 tables = [
-  "camelot-py[base]",
+  "camelot-py[cv]",
   "pandas",
 ]
 

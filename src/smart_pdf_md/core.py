@@ -32,6 +32,7 @@ HIGHRES = 120
 MODE = os.environ.get("SMART_PDF_MD_MODE", "auto").lower()
 ENGINE = os.environ.get("SMART_PDF_MD_ENGINE")
 TABLES = os.environ.get("SMART_PDF_MD_TABLES", "0") == "1"
+TABLES_FLAVOR = os.environ.get("SMART_PDF_MD_TABLES_FLAVOR", "stream").lower()
 MOCK = os.environ.get("SMART_PDF_MD_MARKER_MOCK", "0") == "1"
 MOCK_FAIL = os.environ.get("SMART_PDF_MD_MARKER_MOCK_FAIL", "0") == "1"
 IMAGES = os.environ.get("SMART_PDF_MD_IMAGES", "0") == "1"
@@ -70,6 +71,7 @@ def set_config(
     output_format: str | None = None,
     engine: str | None = None,
     tables: bool | None = None,
+    tables_flavor: str | None = None,
     include: list[str] | None = None,
     exclude: list[str] | None = None,
     log_json: bool | None = None,
@@ -97,7 +99,8 @@ def set_config(
         LOG_JSON, \
         LOG_FILE, \
         ENGINE, \
-        TABLES
+        TABLES, \
+        TABLES_FLAVOR
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -128,6 +131,8 @@ def set_config(
         ENGINE = engine
     if tables is not None:
         TABLES = bool(tables)
+    if tables_flavor is not None:
+        TABLES_FLAVOR = str(tables_flavor).lower()
     if include is not None:
         INCLUDE = list(include)
     if exclude is not None:
@@ -445,7 +450,7 @@ def convert_via_layout(pdf: str, outdir: str | Path) -> int:
     return 0
 
 
-def extract_tables_to_md(pdf: str, outdir: str | Path) -> None:
+def extract_tables_to_md(pdf: str, outdir: str | Path, *, flavor: str | None = None) -> None:
     """Best-effort table extraction to Markdown using camelot (stream).
 
     Writes a sibling file '<stem>.tables.md' when tables are found.
@@ -458,11 +463,26 @@ def extract_tables_to_md(pdf: str, outdir: str | Path) -> None:
     except Exception:
         log("[WARN ] --tables set but 'camelot-py' not installed", level="WARNING")
         return
+    mode = (flavor or TABLES_FLAVOR or "stream").lower()
+    tables = None
+
+    def _read(fl: str):
+        return camelot.read_pdf(pdf, pages="all", flavor=fl)  # type: ignore[attr-defined]
+
     try:
-        tables = camelot.read_pdf(pdf, pages="all", flavor="stream")  # type: ignore[attr-defined]
+        if mode == "auto":
+            try:
+                tables = _read("lattice")
+            except Exception as _e1:  # noqa: F841
+                try:
+                    tables = _read("stream")
+                except Exception as _e2:  # noqa: F841
+                    tables = None
+        else:
+            tables = _read(mode)
     except Exception as e:  # pragma: no cover - environment-dependent
-        log(f"[WARN ] camelot.read_pdf failed: {e!r}", level="WARNING")
-        return
+        log(f"[WARN ] camelot.read_pdf({mode}) failed: {e!r}", level="WARNING")
+        tables = None
     if not tables or getattr(tables, "n", 0) == 0:
         log("[info ] no tables detected by camelot")
         return
@@ -481,11 +501,11 @@ def extract_tables_to_md(pdf: str, outdir: str | Path) -> None:
         log(f"[OK   ] tables -> {out}")
 
 
-def _run_with_tables(pdf: str, outdir: str | Path, fn: Any) -> int:
+def _run_with_tables(pdf: str, outdir: str | Path, fn: Any, *, flavor: str | None = None) -> int:
     # Call the provided engine runner and, on success, extract tables when requested.
     rc = int(fn(str(pdf), str(outdir)))
     if rc == 0 and TABLES:
-        extract_tables_to_md(str(pdf), str(outdir))
+        extract_tables_to_md(str(pdf), str(outdir), flavor=flavor)
     return rc
 
 
@@ -646,6 +666,9 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
                 return _run_with_tables(str(pdf), str(outdir), convert_via_docling)
             if eng in ("layout", "pymupdf4llm"):
                 return _run_with_tables(str(pdf), str(outdir), convert_via_layout)
+            if eng in ("lattice", "camelot-lattice"):
+                # Run text conversion, but force lattice table extraction
+                return _run_with_tables(str(pdf), str(outdir), convert_text, flavor="lattice")
             log(f"[ERROR] unknown engine: {ENGINE}", level="ERROR")
             return 9
         if MODE == "fast":

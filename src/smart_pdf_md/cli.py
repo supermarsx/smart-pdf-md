@@ -427,6 +427,13 @@ def main(argv: list[str] | None = None) -> int:
             if cfg.get("tables") is not None
             else None
         ),
+        tables_flavor=(
+            ns.tables_mode.lower()
+            if getattr(ns, "tables_mode", None)
+            else str(cfg.get("tables_mode")).lower()
+            if cfg.get("tables_mode")
+            else None
+        ),
     )
 
     files = list(iter_input_files(inp))
