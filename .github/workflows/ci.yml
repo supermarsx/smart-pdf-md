@@ -182,3 +182,36 @@ jobs:
         with:
           name: smart-pdf-md-${{ matrix.os }}
           path: dist/smart-pdf-md*
+
+  build-test:
+    name: Build Test (${{ matrix.os }})
+    needs: build
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: smart-pdf-md-${{ matrix.os }}
+          path: dist
+      - name: Prepare binary path (non-Windows)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x dist/smart-pdf-md || true
+          echo "BIN=dist/smart-pdf-md" >> $GITHUB_ENV
+      - name: Prepare binary path (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "$env:BIN=dist/smart-pdf-md.exe" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Smoke run built binary (mock marker)
+        env:
+          SMART_PDF_MD_MODE: marker
+          SMART_PDF_MD_MARKER_MOCK: "1"
+        shell: bash
+        run: |
+          : > smoke.pdf
+          "$BIN" smoke.pdf 5
+          test -f smoke.md
