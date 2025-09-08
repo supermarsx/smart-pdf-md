@@ -37,6 +37,11 @@ MIN_RATIO = float(os.environ.get("SMART_PDF_MD_TEXT_MIN_RATIO", "0.2"))
 MOCK_FAIL_IF_SLICE_GT = int(os.environ.get("SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT", "0"))
 DRY_RUN = os.environ.get("SMART_PDF_MD_DRY_RUN", "0") == "1"
 PROGRESS = os.environ.get("SMART_PDF_MD_PROGRESS", "0") == "1"
+OUTPUT_FORMAT = os.environ.get("SMART_PDF_MD_OUTPUT_FORMAT", "md").lower()
+INCLUDE: list[str] = []
+EXCLUDE: list[str] = []
+LOG_JSON = os.environ.get("SMART_PDF_MD_LOG_JSON", "0") == "1"
+LOG_FILE = os.environ.get("SMART_PDF_MD_LOG_FILE")
 _LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 _LOG_LEVEL_NAME = os.environ.get("SMART_PDF_MD_LOG_LEVEL", "INFO").upper()
 LOG_LEVEL = _LEVELS.get(_LOG_LEVEL_NAME, 20)
@@ -55,6 +60,11 @@ def set_config(
     log_level: str | None = None,
     dry_run: bool | None = None,
     progress: bool | None = None,
+    output_format: str | None = None,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+    log_json: bool | None = None,
+    log_file: str | None = None,
 ) -> None:
     """Override runtime configuration values in memory.
 
@@ -71,7 +81,12 @@ def set_config(
         MOCK_FAIL_IF_SLICE_GT, \
         LOG_LEVEL, \
         DRY_RUN, \
-        PROGRESS
+        PROGRESS, \
+        OUTPUT_FORMAT, \
+        INCLUDE, \
+        EXCLUDE, \
+        LOG_JSON, \
+        LOG_FILE
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -96,13 +111,59 @@ def set_config(
         DRY_RUN = bool(dry_run)
     if progress is not None:
         PROGRESS = bool(progress)
+    if output_format is not None:
+        OUTPUT_FORMAT = str(output_format).lower()
+    if include is not None:
+        INCLUDE = list(include)
+    if exclude is not None:
+        EXCLUDE = list(exclude)
+    if log_json is not None:
+        LOG_JSON = bool(log_json)
+    if log_file is not None:
+        LOG_FILE = log_file
+
+
+def _maybe_rotate_log_file(path: Path, max_bytes: int = 1_000_000) -> None:
+    try:
+        if path.exists() and path.stat().st_size > max_bytes:
+            backup = path.with_suffix(path.suffix + ".1")
+            try:
+                backup.unlink()
+            except Exception:
+                pass
+            path.replace(backup)
+    except Exception:
+        pass
 
 
 def log(msg: str, level: str = "INFO") -> None:
-    """Print a single-line message at a given level if above threshold."""
+    """Print a single-line message at a given level if above threshold.
+
+    Emits plain text by default; when LOG_JSON is enabled, emits a JSON line and
+    mirrors output to LOG_FILE if configured.
+    """
     lv = _LEVELS.get(str(level).upper(), 20)
-    if lv >= LOG_LEVEL:
-        print(msg, flush=True)
+    if lv < LOG_LEVEL:
+        return
+    out = msg
+    if LOG_JSON:
+        import json as _json
+        from datetime import datetime, timezone
+
+        out = _json.dumps({
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "level": level.upper(),
+            "message": msg,
+        }, ensure_ascii=False)
+    print(out, flush=True)
+    if LOG_FILE:
+        p = Path(LOG_FILE)
+        _maybe_rotate_log_file(p)
+        try:
+            with p.open("a", encoding="utf-8") as fh:
+                fh.write(out + "\n")
+        except Exception:
+            pass
 
 
 def mock_write_markdown(pdf: str, outdir: str | Path, note: str) -> int:
@@ -195,19 +256,24 @@ def convert_text(pdf: str, outdir: str | Path) -> int:
         return 1
     try:
         total = len(doc)
-        parts: list[str] = []
         last_pct = -1
-        for idx, p in enumerate(doc, 1):  # type: ignore[assignment]
-            parts.append(p.get_text("text"))
-            if PROGRESS and total > 0:
-                pct = int((idx * 100) / total)
-                if pct // 5 != last_pct // 5:  # report every ~5%
-                    log(f"[PROG ] text {idx}/{total} pages ({pct}%)")
-                    last_pct = pct
+        stem = Path(pdf).stem
+        ext = ".txt" if OUTPUT_FORMAT == "txt" else ".md"
+        out_path = Path(outdir) / (stem + ext)
+        with out_path.open("w", encoding="utf-8") as fh:
+            for idx, p in enumerate(doc, 1):  # type: ignore[assignment]
+                text = p.get_text("text")
+                if idx > 1:
+                    fh.write("\n\n")
+                fh.write(text)
+                if PROGRESS and total > 0:
+                    pct = int((idx * 100) / total)
+                    if pct // 5 != last_pct // 5:
+                        log(f"[PROG ] text {idx}/{total} pages ({pct}%)")
+                        last_pct = pct
     finally:
         doc.close()
-    out = Path(outdir) / (Path(pdf).stem + ".md")
-    out.write_text("\n\n".join(parts), encoding="utf-8")
+    out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
     log(f"[TEXT ] {pdf} -> {out}  ({time.perf_counter() - t0:.2f}s)")
     return 0
 
@@ -307,10 +373,21 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
     return 0
 
 
+def _pattern_match(path: Path, patterns: list[str]) -> bool:
+    from fnmatch import fnmatch
+
+    s = str(path)
+    return any(fnmatch(s, pat) or fnmatch(path.name, pat) for pat in patterns)
+
+
 def iter_input_files(inp: Path) -> Iterable[Path]:
     """Yield one or many PDF paths depending on input being a file or directory."""
     if inp.exists() and inp.is_dir():
         files = sorted(p for p in inp.rglob("*.pdf"))
+        if INCLUDE:
+            files = [p for p in files if _pattern_match(p.relative_to(inp), INCLUDE)]
+        if EXCLUDE:
+            files = [p for p in files if not _pattern_match(p.relative_to(inp), EXCLUDE)]
         log(f"[scan ] folder: {inp}  files={len(files)}")
         return files
     if inp.exists():
@@ -349,3 +426,4 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
     except Exception as e:  # pragma: no cover - safety
         log(f"[FALL ] unhandled error: {e!r}", level="ERROR")
         return 9
+

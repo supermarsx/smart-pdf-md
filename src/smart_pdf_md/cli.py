@@ -50,6 +50,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
     p.add_argument("-o", "--out", dest="outdir", help="Output directory")
     p.add_argument(
+        "--output-format",
+        choices=["md", "txt"],
+        help="Output format for fast path (marker remains markdown)",
+    )
+    p.add_argument(
+        "-S",
+        "--include",
+        action="append",
+        help="Glob pattern(s) to include when scanning a folder",
+    )
+    p.add_argument(
+        "-X",
+        "--exclude",
+        action="append",
+        help="Glob pattern(s) to exclude when scanning a folder",
+    )
+    p.add_argument(
         "-V",
         "--version",
         action="version",
@@ -265,6 +282,29 @@ def main(argv: list[str] | None = None) -> int:
             if cfg.get("progress") is not None
             else None
         ),
+        output_format=(
+            ns.output_format
+            if ns.output_format
+            else str(cfg.get("output_format")).lower()
+            if cfg.get("output_format")
+            else None
+        ),
+        include=(
+            ns.include
+            if ns.include
+            else list(cfg.get("include"))
+            if isinstance(cfg.get("include"), list)
+            else None
+        ),
+        exclude=(
+            ns.exclude
+            if ns.exclude
+            else list(cfg.get("exclude"))
+            if isinstance(cfg.get("exclude"), list)
+            else None
+        ),
+        log_json=(True if cfg.get("log_json") else None),
+        log_file=(str(cfg.get("log_file")) if cfg.get("log_file") else None),
     )
 
     files = list(iter_input_files(inp))
