@@ -325,3 +325,34 @@ SLICE  : Max pages per slice for Marker. Default = 40. Min = 5 (auto‑backoff).
 Output : Writes <filename>.md next to each PDF.
 Return : 0=OK, 1=not found, 2=slice failed, 3=marker single‑pass failed, 9=unhandled.
 ```
+
+## Python CLI
+
+Run without installing (from repo root):
+
+`
+python smart-pdf-md.py INPUT SLICE [options]
+`
+
+Short options
+- -m, --mode {auto,fast,marker}: processing mode
+- -o, --out DIR: output directory
+- -i, --images / -I, --no-images: toggle image extraction for Marker path
+- -c, --min-chars INT: min chars/page to treat as textual
+- -r, --min-ratio FLOAT: min ratio of textual pages
+- -M, --mock: enable Marker mock mode (used by tests)
+- -F, --mock-fail: force Marker mock failure
+
+Example
+`
+python smart-pdf-md.py . 40 -m marker -M -o out -i
+`
+
+## Build & Test Matrix
+
+- Tests (CI): Ubuntu (ubuntu-latest) with Python 3.11
+- Builds (CI): Windows, Ubuntu, macOS (one-file binaries)
+- Releases (GH Releases):
+  - Linux: x86_64 (ubuntu-latest), ARM64 (ubuntu-22.04-arm64)
+  - macOS: x86_64 (macos-13), ARM64 (macos-14)
+  - Windows: x86_64 (windows-latest)

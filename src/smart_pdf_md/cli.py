@@ -1,4 +1,11 @@
+"""Argparse-based command-line interface for smart-pdf-md.
+
+Invoked via the console script `smart-pdf-md` or as a module with
+`python -m smart_pdf_md`.
+"""
+
 from __future__ import annotations
+
 import time
 from pathlib import Path
 import argparse
@@ -7,24 +14,34 @@ from .core import iter_input_files, process_one, log, set_config
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Create and return the CLI argument parser."""
     p = argparse.ArgumentParser(prog="smart-pdf-md", add_help=True)
     p.add_argument("input", help="Input PDF file or directory")
     p.add_argument("slice", type=int, help="Slice size for marker path")
-    p.add_argument("--mode", choices=["auto", "fast", "marker"], help="Processing mode")
-    p.add_argument("--out", dest="outdir", help="Output directory")
+    p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
+    p.add_argument("-o", "--out", dest="outdir", help="Output directory")
     g = p.add_mutually_exclusive_group()
-    g.add_argument("--images", dest="images", action="store_true", help="Enable images")
-    g.add_argument("--no-images", dest="no_images", action="store_true", help="Disable images")
-    p.add_argument(
-        "--min-chars", type=int, dest="min_chars", help="Min chars per page for fast path"
+    g.add_argument("-i", "--images", dest="images", action="store_true", help="Enable images")
+    g.add_argument(
+        "-I", "--no-images", dest="no_images", action="store_true", help="Disable images"
     )
-    p.add_argument("--min-ratio", type=float, dest="min_ratio", help="Min ratio of textual pages")
-    p.add_argument("--mock", action="store_true", help="Mock marker path")
-    p.add_argument("--mock-fail", action="store_true", help="Force mock marker failure")
+    p.add_argument(
+        "-c",
+        "--min-chars",
+        type=int,
+        dest="min_chars",
+        help="Min chars per page for fast path",
+    )
+    p.add_argument(
+        "-r", "--min-ratio", type=float, dest="min_ratio", help="Min ratio of textual pages"
+    )
+    p.add_argument("-M", "--mock", action="store_true", help="Mock marker path")
+    p.add_argument("-F", "--mock-fail", action="store_true", help="Force mock marker failure")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry point; returns a conventional exit code."""
     parser = build_parser()
     ns = parser.parse_args(argv if argv is not None else None)
 
