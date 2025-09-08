@@ -219,7 +219,9 @@ jobs:
           python -m pip install pyinstaller pymupdf marker-pdf PyYAML
       - name: Build binary
         run: |
-          pyinstaller -F --strip -n smart-pdf-md src/smart_pdf_md/__main__.py
+          pyinstaller -F --strip -n smart-pdf-md \
+            --collect-all fitz \
+            src/smart_pdf_md/__main__.py
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -249,6 +251,69 @@ jobs:
         shell: pwsh
         run: |
           "BIN=dist/smart-pdf-md.exe" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Generate sample PDF with table and image (non-Windows)
+        if: runner.os != 'Windows'
+        run: |
+          python -m pip install -q pymupdf pillow
+          python - <<'PY'
+          import fitz, io
+          from PIL import Image
+          doc = fitz.open()
+          page = doc.new_page()
+          # Table-like lines
+          page.draw_line((72, 120), (400, 120))
+          page.draw_line((72, 160), (400, 160))
+          page.draw_line((72, 200), (400, 200))
+          page.draw_line((72, 120), (72, 200))
+          page.draw_line((236, 120), (236, 200))
+          page.draw_line((400, 120), (400, 200))
+          page.insert_text((80, 110), "Header1  Header2", fontsize=12)
+          page.insert_text((80, 145), "Cell11    Cell12", fontsize=11)
+          page.insert_text((80, 185), "Cell21    Cell22", fontsize=11)
+          # Add a small image
+          img = Image.new('RGB', (32, 32), color=(200, 50, 50))
+          buf = io.BytesIO(); img.save(buf, format='PNG');
+          page.insert_image(fitz.Rect(420, 120, 460, 160), stream=buf.getvalue())
+          doc.save('sample.pdf'); doc.close()
+          PY
+      - name: Fast path extraction smoke (non-Windows, PyMuPDF)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          "$BIN" sample.pdf 5 -m fast
+          test -f sample.md
+          grep -q "Header1" sample.md
+      - name: Generate sample PDF with table and image (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install -q pymupdf pillow
+          python - <<'PY'
+          import fitz, io
+          from PIL import Image
+          doc = fitz.open()
+          page = doc.new_page()
+          page.draw_line((72, 120), (400, 120))
+          page.draw_line((72, 160), (400, 160))
+          page.draw_line((72, 200), (400, 200))
+          page.draw_line((72, 120), (72, 200))
+          page.draw_line((236, 120), (236, 200))
+          page.draw_line((400, 120), (400, 200))
+          page.insert_text((80, 110), "Header1  Header2", fontsize=12)
+          page.insert_text((80, 145), "Cell11    Cell12", fontsize=11)
+          page.insert_text((80, 185), "Cell21    Cell22", fontsize=11)
+          img = Image.new('RGB', (32, 32), color=(200, 50, 50))
+          buf = io.BytesIO(); img.save(buf, format='PNG');
+          page.insert_image(fitz.Rect(420, 120, 460, 160), stream=buf.getvalue())
+          doc.save('sample.pdf'); doc.close()
+          PY
+      - name: Fast path extraction smoke (Windows, PyMuPDF)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & $env:BIN sample.pdf 5 -m fast
+          if (-not (Test-Path sample.md)) { exit 1 }
+          if (-not (Select-String -Path sample.md -Pattern 'Header1')) { exit 1 }
       - name: Smoke run binary (non-Windows, mock marker)
         if: runner.os != 'Windows'
         env:

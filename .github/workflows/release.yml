@@ -68,7 +68,9 @@ jobs:
 
       - name: Build binary
         run: |
-          pyinstaller -F -n smart-pdf-md src/smart_pdf_md/__main__.py
+          pyinstaller -F -n smart-pdf-md \
+            --collect-all fitz \
+            src/smart_pdf_md/__main__.py
 
       - name: Rename artifact (non-Windows)
         if: runner.os != 'Windows'
