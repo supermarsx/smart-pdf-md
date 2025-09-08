@@ -3,7 +3,7 @@
 [![CI](https://github.com/supermarsx/smart-pdf-md/actions/workflows/ci.yml/badge.svg)](https://github.com/supermarsx/smart-pdf-md/actions/workflows/ci.yml)
 [![Coverage](badges/coverage.svg)](docs/coverage.md)
 [![PyPI](https://img.shields.io/pypi/v/smart-pdf-md)](https://pypi.org/project/smart-pdf-md/)
-[![Downloads](https://static.pepy.tech/badge/smart-pdf-md/month)](https://pepy.tech/project/smart-pdf-md)
+[![Downloads](https://img.shields.io/github/downloads/supermarsx/smart-pdf-md/total)](https://github.com/supermarsx/smart-pdf-md/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/supermarsx/smart-pdf-md)](https://github.com/supermarsx/smart-pdf-md/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/supermarsx/smart-pdf-md)](https://github.com/supermarsx/smart-pdf-md/network/members)
 [![GitHub Watchers](https://img.shields.io/github/watchers/supermarsx/smart-pdf-md)](https://github.com/supermarsx/smart-pdf-md/watchers)
