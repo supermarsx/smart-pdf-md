@@ -327,18 +327,29 @@ python smart-pdf-md.py INPUT SLICE [options]
 Short options
 - -m, --mode {auto,fast,marker}: processing mode
 - -o, --out DIR: output directory
+- --output-format {md,txt}: fast-path output extension (marker remains markdown)
 - -i, --images / -I, --no-images: toggle image extraction for Marker path
 - -c, --min-chars INT: min chars/page to treat as textual
 - -r, --min-ratio FLOAT: min ratio of textual pages
-- -M, --mock: enable Marker mock mode (used by tests)
-- -F, --mock-fail: force Marker mock failure
+- -S, --include GLOB: include pattern(s) when scanning a folder (repeatable)
+- -X, --exclude GLOB: exclude pattern(s) when scanning a folder (repeatable)
+- -p, --progress: show incremental progress (pages/slices)
+- -n, --dry-run: log intended actions; do not write or run Marker
+- -L, --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}: logging threshold
+- -q/--quiet and -v/--verbose: set ERROR/DEBUG respectively (overridden by -L)
+- --log-json: emit JSON logs; --log-file PATH: also append logs to file
+- -C, --config FILE: load TOML/YAML/JSON config; CLI overrides config values
+- -E, --env KEY=VALUE: set env var(s) for this run (repeatable)
+- --no-warn-unknown-env: suppress warnings for unknown env keys
+- -T, --torch-device VAL; -O, --ocr-engine VAL
+- -P, --pytorch-alloc-conf VAL; -G, --cuda-visible-devices VAL
+- -V, --version: print version (includes git SHA/date in a git checkout)
 
 Example
 `
-python smart-pdf-md.py . 40 -m marker -M -o out -i
+python smart-pdf-md.py . 40 -m marker -M -o out -i -p --output-format md \
+  -S "**/Handbooks/*.pdf" -X "**/*draft*.pdf" -L INFO --log-json --log-file run.log
 `
-- `-L, --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}`: logging threshold
-- `-V, --version`: print version and exit
 
 ## Build & Test Matrix
 
@@ -375,5 +386,18 @@ Install for development:
 python -m pip install -r requirements-dev.txt
 python -m pip install -e .
 ```
+
+## Troubleshooting
+
+- No output created
+  - Run with `-p -L DEBUG` to see progress and routing decisions.
+  - Use `-n` (dry-run) to preview actions without writing files.
+- Marker fails or is slow
+  - Force fast path with `-m fast` for textual PDFs.
+  - Limit GPU settings via `-T cpu` or `-G 0`.
+- Too many files processed
+  - Use `-S/--include` and `-X/--exclude` globs to narrow scope.
+- Logs hard to parse
+  - Use `--log-json` and `--log-file run.log` for structured logging and archival.
 
 
