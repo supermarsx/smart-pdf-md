@@ -1,22 +1,24 @@
-# Bytecode and caches
+
 __pycache__/
-*.pyc
+.DS_Store
+.idea/
 .pytest_cache/
 .ruff_cache/
-
-# OS junk
-.DS_Store
-Thumbs.db
-
+.vscode/
+{out}
+*.pyc
+*.spec
 # Build artifacts
+# Bytecode and caches
+# Editors
+# OS junk
+# Test artifacts
 build/
 dist/
-*.spec
-
-# Test artifacts
-smoke.pdf
+fast
+marker_single')
+PyMuPDF')
 smoke.md
-
-# Editors
-.vscode/
-.idea/
+smoke.pdf
+temp.part
+Thumbs.db

@@ -1,1 +1,0 @@
-    log(f'[TEXT ] {pdf} -  ({time.perf_counter()-t0:.2f}s)')
