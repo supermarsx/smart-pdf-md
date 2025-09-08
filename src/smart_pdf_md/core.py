@@ -37,6 +37,7 @@ MIN_RATIO = float(os.environ.get("SMART_PDF_MD_TEXT_MIN_RATIO", "0.2"))
 MOCK_FAIL_IF_SLICE_GT = int(os.environ.get("SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT", "0"))
 DRY_RUN = os.environ.get("SMART_PDF_MD_DRY_RUN", "0") == "1"
 PROGRESS = os.environ.get("SMART_PDF_MD_PROGRESS", "0") == "1"
+RESUME = os.environ.get("SMART_PDF_MD_RESUME", "0") == "1"
 OUTPUT_FORMAT = os.environ.get("SMART_PDF_MD_OUTPUT_FORMAT", "md").lower()
 INCLUDE: list[str] = []
 EXCLUDE: list[str] = []
@@ -45,6 +46,8 @@ LOG_FILE = os.environ.get("SMART_PDF_MD_LOG_FILE")
 _LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 _LOG_LEVEL_NAME = os.environ.get("SMART_PDF_MD_LOG_LEVEL", "INFO").upper()
 LOG_LEVEL = _LEVELS.get(_LOG_LEVEL_NAME, 20)
+MARKER_TIMEOUT = int(os.environ.get("SMART_PDF_MD_MARKER_TIMEOUT", "0"))
+MARKER_RETRIES = int(os.environ.get("SMART_PDF_MD_MARKER_RETRIES", "0"))
 
 
 def set_config(

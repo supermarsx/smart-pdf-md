@@ -4,7 +4,9 @@ genbadge[coverage]
 pytest
 pytest-cov
 pymupdf
+rich
 ruff
 build
 twine
 pip-tools
+mypy

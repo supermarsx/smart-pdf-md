@@ -78,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
     p.add_argument("-o", "--out", dest="outdir", help="Output directory")
     p.add_argument(
+        "-f",
         "--output-format",
         choices=["md", "txt"],
         help="Output format for fast path (marker remains markdown)",
@@ -141,10 +142,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--log-json", action="store_true", help="Emit logs as JSON lines (ts, level, message)")
     p.add_argument("--log-file", help="Append logs to a file (1MB simple rotation)")
     p.add_argument(
+        "-w",
         "--no-warn-unknown-env",
         action="store_true",
         help="Do not warn when encountering unknown environment keys",
     )
+    # Reliability knobs
+    p.add_argument("-t", "--timeout", type=int, dest="timeout", help="Marker subprocess timeout (seconds)")
+    p.add_argument("-x", "--retries", type=int, dest="retries", help="Retries for marker subprocess")
+    # Resume/skip existing
+    p.add_argument("-R", "--resume", action="store_true", help="Skip PDFs whose outputs already exist")
+    # First-run checklist
+    p.add_argument("-D", "--check-deps", action="store_true", help="Check and optionally install missing dependencies")
+    p.add_argument("-y", "--yes", action="store_true", help="Assume yes for dependency prompts when using --check-deps")
     return p
 
 
