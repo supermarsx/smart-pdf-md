@@ -33,6 +33,9 @@ pdfplumber = [
 ocr = [
   "ocrmypdf",
 ]
+docling = [
+  "docling",
+]
 
 [project.urls]
 Homepage = "https://github.com/supermarsx/smart-pdf-md"

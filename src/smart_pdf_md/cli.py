@@ -91,6 +91,7 @@ def build_parser() -> argparse.ArgumentParser:
             "html2md",
             "pdfminer",
             "pdfplumber",
+            "docling",
             "ocrmypdf",
             "ocr",
         ],

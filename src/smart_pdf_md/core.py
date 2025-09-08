@@ -412,6 +412,30 @@ def convert_via_ocrmypdf(pdf: str, outdir: str | Path) -> int:
         return convert_text(str(ocr_pdf), str(outdir))
 
 
+def convert_via_docling(pdf: str, outdir: str | Path) -> int:
+    """Convert using IBM Docling to Markdown.
+
+    Requires the `docling` package. Produces markdown via Docling's converter.
+    """
+    try:
+        from docling.document_converter import DocumentConverter, DocumentInput  # type: ignore
+    except Exception:
+        log("[ERROR] python package 'docling' not installed", level="ERROR")
+        return 4
+    try:
+        conv = DocumentConverter()
+        di = DocumentInput.with_pdf(str(pdf))
+        res = conv.convert(di)
+        md = res.document.export_to_markdown()  # type: ignore[attr-defined]
+    except Exception as e:  # pragma: no cover - best effort
+        log(f"[ERROR] docling conversion failed: {e!r}", level="ERROR")
+        return 4
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(md, encoding="utf-8")
+    log(f"[OK   ] docling {pdf} -> {out}")
+    return 0
+
+
 def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
     """Execute marker for a page slice (inclusive indices), or mock when enabled."""
     if DRY_RUN:
@@ -535,6 +559,8 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
                 return convert_via_pdfplumber(str(pdf), str(outdir))
             if eng in ("ocrmypdf", "ocr"):
                 return convert_via_ocrmypdf(str(pdf), str(outdir))
+            if eng in ("docling",):
+                return convert_via_docling(str(pdf), str(outdir))
             log(f"[ERROR] unknown engine: {ENGINE}", level="ERROR")
             return 9
         if MODE == "fast":
