@@ -105,7 +105,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
         run: |
           set -e
-          python -m genbadge coverage -i coverage.xml -o badges/coverage.svg
+          genbadge coverage -i coverage.xml -o badges/coverage.svg
           python - <<'PY'
           import xml.etree.ElementTree as ET
           from datetime import datetime, timezone
