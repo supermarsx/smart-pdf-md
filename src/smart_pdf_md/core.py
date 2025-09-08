@@ -13,15 +13,17 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
+FITZ_IMPORT_ERROR: Exception | None = None
+fitz: Any | None
 try:  # PyMuPDF is optional for build environments
-    import fitz  # type: ignore
+    import fitz as _fitz
+
+    fitz = _fitz
 except Exception as e:  # pragma: no cover - best effort
-    fitz = None  # type: ignore[assignment]
+    fitz = None
     FITZ_IMPORT_ERROR = e
-else:
-    FITZ_IMPORT_ERROR = None
 
 
 LOWRES = 96
@@ -29,6 +31,7 @@ HIGHRES = 120
 # Configurable globals (overridable via set_config)
 MODE = os.environ.get("SMART_PDF_MD_MODE", "auto").lower()
 ENGINE = os.environ.get("SMART_PDF_MD_ENGINE")
+TABLES = os.environ.get("SMART_PDF_MD_TABLES", "0") == "1"
 MOCK = os.environ.get("SMART_PDF_MD_MARKER_MOCK", "0") == "1"
 MOCK_FAIL = os.environ.get("SMART_PDF_MD_MARKER_MOCK_FAIL", "0") == "1"
 IMAGES = os.environ.get("SMART_PDF_MD_IMAGES", "0") == "1"
@@ -66,6 +69,7 @@ def set_config(
     progress: bool | None = None,
     output_format: str | None = None,
     engine: str | None = None,
+    tables: bool | None = None,
     include: list[str] | None = None,
     exclude: list[str] | None = None,
     log_json: bool | None = None,
@@ -92,7 +96,8 @@ def set_config(
         EXCLUDE, \
         LOG_JSON, \
         LOG_FILE, \
-        ENGINE
+        ENGINE, \
+        TABLES
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -121,6 +126,8 @@ def set_config(
         OUTPUT_FORMAT = str(output_format).lower()
     if engine is not None:
         ENGINE = engine
+    if tables is not None:
+        TABLES = bool(tables)
     if include is not None:
         INCLUDE = list(include)
     if exclude is not None:
@@ -412,6 +419,76 @@ def convert_via_ocrmypdf(pdf: str, outdir: str | Path) -> int:
         return convert_text(str(ocr_pdf), str(outdir))
 
 
+def convert_via_layout(pdf: str, outdir: str | Path) -> int:
+    """Convert using PyMuPDF4LLM to Markdown (layout-aware)."""
+    try:
+        from pymupdf4llm import to_markdown  # type: ignore
+    except Exception:
+        log("[ERROR] python package 'pymupdf4llm' not installed", level="ERROR")
+        return 4
+    if not fitz:
+        log("[ERROR] PyMuPDF not available for layout engine", level="ERROR")
+        return 4
+    doc = try_open(pdf)
+    if not doc:
+        return 4
+    try:
+        md = to_markdown(doc)
+    finally:
+        try:
+            doc.close()
+        except Exception:
+            pass
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(md, encoding="utf-8")
+    log(f"[OK   ] layout(PyMuPDF4LLM) {pdf} -> {out}")
+    return 0
+
+
+def extract_tables_to_md(pdf: str, outdir: str | Path) -> None:
+    """Best-effort table extraction to Markdown using camelot (stream).
+
+    Writes a sibling file '<stem>.tables.md' when tables are found.
+    Fails silently with warnings (does not change exit code).
+    """
+    if not TABLES:
+        return
+    try:
+        import camelot  # type: ignore
+    except Exception:
+        log("[WARN ] --tables set but 'camelot-py' not installed", level="WARNING")
+        return
+    try:
+        tables = camelot.read_pdf(pdf, pages="all", flavor="stream")  # type: ignore[attr-defined]
+    except Exception as e:  # pragma: no cover - environment-dependent
+        log(f"[WARN ] camelot.read_pdf failed: {e!r}", level="WARNING")
+        return
+    if not tables or getattr(tables, "n", 0) == 0:
+        log("[info ] no tables detected by camelot")
+        return
+    parts: list[str] = [f"# Tables extracted from {Path(pdf).name}"]
+    for i in range(getattr(tables, "n", 0)):
+        try:
+            t = tables[i]
+            df = t.df  # pandas DataFrame
+            md = df.to_markdown(index=False)
+            parts.append(f"\n\n## Table {i + 1}\n\n{md}")
+        except Exception:
+            continue
+    if len(parts) > 1:
+        out = Path(outdir) / (Path(pdf).stem + ".tables.md")
+        out.write_text("".join(parts), encoding="utf-8")
+        log(f"[OK   ] tables -> {out}")
+
+
+def _run_with_tables(pdf: str, outdir: str | Path, fn: Any) -> int:
+    # Call the provided engine runner and, on success, extract tables when requested.
+    rc = int(fn(str(pdf), str(outdir)))
+    if rc == 0 and TABLES:
+        extract_tables_to_md(str(pdf), str(outdir))
+    return rc
+
+
 def convert_via_docling(pdf: str, outdir: str | Path) -> int:
     """Convert using IBM Docling to Markdown.
 
@@ -548,32 +625,46 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
             eng = ENGINE.lower()
             log(f"[eng  ] FORCED ENGINE -> {eng}")
             if eng in ("pymupdf", "fast"):
-                return convert_text(str(pdf), str(outdir))
+                return _run_with_tables(str(pdf), str(outdir), convert_text)
             if eng in ("marker",):
-                return marker_convert(str(pdf), str(outdir), slice_pages)
+                rc = marker_convert(str(pdf), str(outdir), slice_pages)
+                if rc == 0 and TABLES:
+                    extract_tables_to_md(str(pdf), str(outdir))
+                return rc
             if eng in ("poppler", "poppler-html2md", "html2md"):
-                return convert_via_poppler(str(pdf), str(outdir))
+                return _run_with_tables(str(pdf), str(outdir), convert_via_poppler)
             if eng in ("pdfminer", "pdfminer.six"):
-                return convert_via_pdfminer(str(pdf), str(outdir))
+                return _run_with_tables(str(pdf), str(outdir), convert_via_pdfminer)
             if eng in ("pdfplumber",):
-                return convert_via_pdfplumber(str(pdf), str(outdir))
+                return _run_with_tables(str(pdf), str(outdir), convert_via_pdfplumber)
             if eng in ("ocrmypdf", "ocr"):
-                return convert_via_ocrmypdf(str(pdf), str(outdir))
+                rc = convert_via_ocrmypdf(str(pdf), str(outdir))
+                if rc == 0 and TABLES:
+                    extract_tables_to_md(str(pdf), str(outdir))
+                return rc
             if eng in ("docling",):
-                return convert_via_docling(str(pdf), str(outdir))
+                return _run_with_tables(str(pdf), str(outdir), convert_via_docling)
+            if eng in ("layout", "pymupdf4llm"):
+                return _run_with_tables(str(pdf), str(outdir), convert_via_layout)
             log(f"[ERROR] unknown engine: {ENGINE}", level="ERROR")
             return 9
         if MODE == "fast":
             log("[path ] FORCED FAST -> PyMuPDF")
-            return convert_text(str(pdf), str(outdir))
+            return _run_with_tables(str(pdf), str(outdir), convert_text)
         if MODE == "marker":
             log("[path ] FORCED MARKER -> marker_single")
-            return marker_convert(str(pdf), str(outdir), slice_pages)
+            rc = marker_convert(str(pdf), str(outdir), slice_pages)
+            if rc == 0 and TABLES:
+                extract_tables_to_md(str(pdf), str(outdir))
+            return rc
         if is_textual(str(pdf)):
             log("[path ] TEXTUAL -> fast PyMuPDF")
-            return convert_text(str(pdf), str(outdir))
+            return _run_with_tables(str(pdf), str(outdir), convert_text)
         log("[path ] NON-TEXTUAL -> marker_single")
-        return marker_convert(str(pdf), str(outdir), slice_pages)
+        rc = marker_convert(str(pdf), str(outdir), slice_pages)
+        if rc == 0 and TABLES:
+            extract_tables_to_md(str(pdf), str(outdir))
+        return rc
     except Exception as e:  # pragma: no cover - safety
         log(f"[FALL ] unhandled error: {e!r}", level="ERROR")
         return 9

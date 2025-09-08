@@ -85,16 +85,19 @@ jobs:
           python -m ruff format --check .
 
   test:
-    name: Test (ubuntu-latest / py3.11)
+    name: Test (ubuntu / py${{ matrix.py }})
     needs: format
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        py: ['3.11', '3.12', '3.13']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.py }}
           cache: 'pip'
           cache-dependency-path: |
             requirements.txt
@@ -155,7 +158,7 @@ jobs:
           python -m coverage xml -i -o coverage.xml
           python -m coverage html -i -d coverage_html
           python -m coverage report -m | tee coverage.txt
-      - name: Generate and commit coverage badge (main, ubuntu, py3.11)
+      - name: Generate and commit coverage badge (main, ubuntu)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
         run: |
           set -e
@@ -185,7 +188,7 @@ jobs:
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-ubuntu-py3.11
+          name: coverage-ubuntu-py${{ matrix.py }}
           path: |
             coverage.xml
             coverage.pytest.xml

@@ -36,6 +36,13 @@ ocr = [
 docling = [
   "docling",
 ]
+layout = [
+  "pymupdf4llm",
+]
+tables = [
+  "camelot-py[base]",
+  "pandas",
+]
 
 [project.urls]
 Homepage = "https://github.com/supermarsx/smart-pdf-md"

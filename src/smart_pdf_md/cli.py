@@ -92,6 +92,8 @@ def build_parser() -> argparse.ArgumentParser:
             "pdfminer",
             "pdfplumber",
             "docling",
+            "layout",
+            "pymupdf4llm",
             "ocrmypdf",
             "ocr",
         ],
@@ -103,6 +105,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-format",
         choices=["md", "txt"],
         help="Output format for fast path (marker remains markdown)",
+    )
+    p.add_argument(
+        "--tables",
+        action="store_true",
+        help="Extract tables to '<stem>.tables.md' using camelot (stream)",
     )
     p.add_argument(
         "-S",
@@ -239,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         "SMART_PDF_MD_PYTHON",
         "SMART_PDF_MD_COVERAGE",
         "SMART_PDF_MD_ENGINE",
+        "SMART_PDF_MD_TABLES",
         # Marker/Torch common envs
         "TORCH_DEVICE",
         "OCR_ENGINE",
@@ -248,11 +256,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # Determine whether to warn on unknown env keys: default True, can be disabled
     warn_unknown_env = True
-    if cfg.get("warn_unknown_env") is not None:
-        try:
-            warn_unknown_env = bool(cfg.get("warn_unknown_env"))  # type: ignore[arg-type]
-        except Exception:
-            warn_unknown_env = True
+    if "warn_unknown_env" in cfg and cfg.get("warn_unknown_env") is not None:
+        val = cfg.get("warn_unknown_env")
+        if isinstance(val, bool):
+            warn_unknown_env = val
+        elif isinstance(val, str):
+            warn_unknown_env = val.strip().lower() in {"1", "true", "yes", "on"}
     if ns.no_warn_unknown_env:
         warn_unknown_env = False
 
@@ -264,7 +273,7 @@ def main(argv: list[str] | None = None) -> int:
     if isinstance(cfg.get("env"), dict):
         import os as _os
 
-        for k, v in cfg["env"].items():  # type: ignore[assignment]
+        for k, v in cfg["env"].items():
             _os.environ[str(k)] = str(v)
             _warn_unknown_env(str(k))
     if ns.env:
@@ -304,7 +313,14 @@ def main(argv: list[str] | None = None) -> int:
         log("[USAGE] smart-pdf-md INPUT SLICE [-C CONFIG] [options]")
         return 2
     inp = Path(str(inp_val))
-    slice_pages = int(slice_val)  # type: ignore[arg-type]
+    try:
+        slice_pages = int(slice_val)  # type: ignore[call-overload]
+    except Exception:
+        try:
+            slice_pages = int(str(slice_val))
+        except Exception:
+            log("[ERROR] invalid slice value", level="ERROR")
+            return 2
 
     # Merge config with CLI overrides
     set_config(
@@ -402,6 +418,13 @@ def main(argv: list[str] | None = None) -> int:
             if ns.engine
             else str(cfg.get("engine")).lower()
             if cfg.get("engine")
+            else None
+        ),
+        tables=(
+            True
+            if getattr(ns, "tables", False)
+            else bool(cfg.get("tables"))
+            if cfg.get("tables") is not None
             else None
         ),
     )
