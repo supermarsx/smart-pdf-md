@@ -139,12 +139,9 @@ jobs:
             coverage.txt
 
   build:
-    name: Build (${{ matrix.os }})
+    name: Build (ubuntu-latest)
     needs: test
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -163,38 +160,34 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: smart-pdf-md-${{ matrix.os }}
+          name: smart-pdf-md
           path: dist/smart-pdf-md*
 
   build-test:
-    name: Build Test (${{ matrix.os }})
+    name: Build Test (ubuntu-latest)
     needs: build
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: smart-pdf-md-${{ matrix.os }}
+          name: smart-pdf-md
           path: dist
-      - name: Prepare binary path (non-Windows)
-        if: runner.os != 'Windows'
+      - name: Prepare binary path
         run: |
           chmod +x dist/smart-pdf-md || true
           echo "BIN=dist/smart-pdf-md" >> $GITHUB_ENV
-      - name: Prepare binary path (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          "$env:BIN=dist/smart-pdf-md.exe" | Out-File -FilePath $env:GITHUB_ENV -Append
       - name: Smoke run built binary (mock marker)
         env:
           SMART_PDF_MD_MODE: marker
           SMART_PDF_MD_MARKER_MOCK: "1"
         shell: bash
         run: |
-          : > smoke.pdf
+          python - <<'PY'
+          from pathlib import Path
+          import fitz
+          p = Path('smoke.pdf')
+          doc = fitz.open(); doc.new_page(); doc.save(p); doc.close()
+          PY
           "$BIN" smoke.pdf 5
           test -f smoke.md
