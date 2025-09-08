@@ -35,6 +35,9 @@ OUTDIR = os.environ.get("SMART_PDF_MD_OUTPUT_DIR")
 MIN_CHARS = int(os.environ.get("SMART_PDF_MD_TEXT_MIN_CHARS", "100"))
 MIN_RATIO = float(os.environ.get("SMART_PDF_MD_TEXT_MIN_RATIO", "0.2"))
 MOCK_FAIL_IF_SLICE_GT = int(os.environ.get("SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT", "0"))
+_LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
+_LOG_LEVEL_NAME = os.environ.get("SMART_PDF_MD_LOG_LEVEL", "INFO").upper()
+LOG_LEVEL = _LEVELS.get(_LOG_LEVEL_NAME, 20)
 
 
 def set_config(
@@ -47,12 +50,13 @@ def set_config(
     mock: bool | None = None,
     mock_fail: bool | None = None,
     mock_fail_if_slice_gt: int | None = None,
+    log_level: str | None = None,
 ) -> None:
     """Override runtime configuration values in memory.
 
     Parameters mirror environment variables used by the CLI and legacy scripts.
     """
-    global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT
+    global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT, LOG_LEVEL
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -69,11 +73,17 @@ def set_config(
         MOCK_FAIL = mock_fail
     if mock_fail_if_slice_gt is not None:
         MOCK_FAIL_IF_SLICE_GT = int(mock_fail_if_slice_gt)
+    if log_level is not None:
+        lvl = _LEVELS.get(str(log_level).upper())
+        if lvl is not None:
+            LOG_LEVEL = lvl
 
 
-def log(msg: str) -> None:
-    """Print a single-line message, flushed immediately."""
-    print(msg, flush=True)
+def log(msg: str, level: str = "INFO") -> None:
+    """Print a single-line message at a given level if above threshold."""
+    lv = _LEVELS.get(str(level).upper(), 20)
+    if lv >= LOG_LEVEL:
+        print(msg, flush=True)
 
 
 def mock_write_markdown(pdf: str, outdir: str | Path, note: str) -> int:
@@ -117,12 +127,12 @@ def which_marker_single() -> list[str]:
 def try_open(pdf: str):  # type: ignore[override]
     """Best-effort open of a PDF via PyMuPDF; returns None on failure."""
     if not fitz:
-        log(f"[WARN ] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
+        log(f"[WARN ] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}", level="WARNING")
         return None
     try:
         return fitz.open(pdf)
     except Exception as e:  # pragma: no cover - environment-specific
-        log(f"[WARN ] PyMuPDF cannot open: {e!r}")
+        log(f"[WARN ] PyMuPDF cannot open: {e!r}", level="WARNING")
         return None
 
 
@@ -154,7 +164,7 @@ def is_textual(
 def convert_text(pdf: str, outdir: str | Path) -> int:
     """Extract plain text from each page using PyMuPDF and write Markdown."""
     if not fitz:
-        log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
+        log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}", level="ERROR")
         return 1
     t0 = time.perf_counter()
     doc = try_open(pdf)
@@ -224,7 +234,7 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
     if not doc:
         rc = marker_single_pass(pdf, outdir)
         if rc != 0:
-            log(f"[ERROR] marker_single rc={rc}")
+            log(f"[ERROR] marker_single rc={rc}", level="ERROR")
             return 3
         log("[OK   ] single-pass done")
         return 0
@@ -240,10 +250,10 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
         dt = time.perf_counter() - t0
         if rc != 0:
             if cur <= 5:
-                log(f"[ERROR] slice {start}-{end} failed rc={rc} (min slice)")
+                log(f"[ERROR] slice {start}-{end} failed rc={rc} (min slice)", level="ERROR")
                 return 2
             cur = max(5, cur // 2)
-            log(f"[WARN ] retry with slice={cur}")
+            log(f"[WARN ] retry with slice={cur}", level="WARNING")
             continue
         log(f"[OK   ] pages {start}-{end} in {dt:.2f}s")
         start = end + 1
@@ -259,7 +269,7 @@ def iter_input_files(inp: Path) -> Iterable[Path]:
     if inp.exists():
         log(f"[scan ] single file: {inp}")
         return [inp]
-    log(f"[ERROR] input not found: {inp}")
+    log(f"[ERROR] input not found: {inp}", level="ERROR")
     return []
 
 
@@ -282,5 +292,5 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
         log("[path ] NON-TEXTUAL -> marker_single")
         return marker_convert(str(pdf), str(outdir), slice_pages)
     except Exception as e:  # pragma: no cover - safety
-        log(f"[FALL ] unhandled error: {e!r}")
+        log(f"[FALL ] unhandled error: {e!r}", level="ERROR")
         return 9

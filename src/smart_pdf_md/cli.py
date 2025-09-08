@@ -37,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("-M", "--mock", action="store_true", help="Mock marker path")
     p.add_argument("-F", "--mock-fail", action="store_true", help="Force mock marker failure")
+    p.add_argument(
+        "-L",
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Standard logging level threshold",
+    )
     return p
 
 
@@ -56,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
         min_ratio=ns.min_ratio,
         mock=True if ns.mock else None,
         mock_fail=True if ns.mock_fail else None,
+        log_level=ns.log_level,
     )
 
     files = list(iter_input_files(inp))
