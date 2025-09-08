@@ -1,6 +1,9 @@
+coverage
+genbadge[coverage]
 pytest
 pytest-cov
-coverage
 pymupdf
+pyyaml
 ruff
-genbadge[coverage]
+build
+twine
