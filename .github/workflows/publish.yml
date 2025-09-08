@@ -15,7 +15,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -67,6 +66,8 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
   publish-testpypi:
     name: Publish to TestPyPI
@@ -87,4 +88,5 @@ jobs:
         with:
           packages-dir: dist
           repository-url: https://test.pypi.org/legacy/
-
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
