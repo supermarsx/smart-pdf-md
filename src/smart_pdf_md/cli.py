@@ -91,6 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show incremental progress (pages, slices) while processing",
     )
+    p.add_argument(
+        "--no-warn-unknown-env",
+        action="store_true",
+        help="Do not warn when encountering unknown environment keys",
+    )
     return p
 
 
@@ -109,12 +114,50 @@ def main(argv: list[str] | None = None) -> int:
             log(f"[ERROR] config load failed: {e!r}", level="ERROR")
             return 2
 
+    # Known env keys to avoid noisy warnings (case-sensitive comparison after upper())
+    KNOWN_ENV = {
+        # Project envs
+        "SMART_PDF_MD_MODE",
+        "SMART_PDF_MD_MARKER_MOCK",
+        "SMART_PDF_MD_MARKER_MOCK_FAIL",
+        "SMART_PDF_MD_IMAGES",
+        "SMART_PDF_MD_OUTPUT_DIR",
+        "SMART_PDF_MD_TEXT_MIN_CHARS",
+        "SMART_PDF_MD_TEXT_MIN_RATIO",
+        "SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT",
+        "SMART_PDF_MD_DRY_RUN",
+        "SMART_PDF_MD_LOG_LEVEL",
+        "SMART_PDF_MD_PROGRESS",
+        "SMART_PDF_MD_PYTHON",
+        "SMART_PDF_MD_COVERAGE",
+        # Marker/Torch common envs
+        "TORCH_DEVICE",
+        "OCR_ENGINE",
+        "PYTORCH_CUDA_ALLOC_CONF",
+        "CUDA_VISIBLE_DEVICES",
+    }
+
+    # Determine whether to warn on unknown env keys: default True, can be disabled
+    warn_unknown_env = True
+    if cfg.get("warn_unknown_env") is not None:
+        try:
+            warn_unknown_env = bool(cfg.get("warn_unknown_env"))  # type: ignore[arg-type]
+        except Exception:
+            warn_unknown_env = True
+    if ns.no_warn_unknown_env:
+        warn_unknown_env = False
+
+    def _warn_unknown_env(key: str) -> None:
+        if warn_unknown_env and key.upper() not in KNOWN_ENV:
+            log(f"[WARN ] unknown env key: {key}", level="WARNING")
+
     # Apply environment variables from config first, then CLI overrides
     if isinstance(cfg.get("env"), dict):
         import os as _os
 
-        for k, v in (cfg["env"].items()):  # type: ignore[assignment]
+        for k, v in cfg["env"].items():  # type: ignore[assignment]
             _os.environ[str(k)] = str(v)
+            _warn_unknown_env(str(k))
     if ns.env:
         import os as _os
 
@@ -124,19 +167,19 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             k, v = item.split("=", 1)
             _os.environ[k] = v
+            _warn_unknown_env(k)
 
     # Apply convenience env flags (CLI overrides config)
     # Accept config keys: torch_device, ocr_engine, pytorch_cuda_alloc_conf, cuda_visible_devices
     import os as _os
+
     torch_device = ns.torch_device if ns.torch_device else cfg.get("torch_device")
     if torch_device is not None:
         _os.environ["TORCH_DEVICE"] = str(torch_device)
     ocr_engine = ns.ocr_engine if ns.ocr_engine else cfg.get("ocr_engine")
     if ocr_engine is not None:
         _os.environ["OCR_ENGINE"] = str(ocr_engine)
-    pa_conf = (
-        ns.pytorch_alloc_conf if ns.pytorch_alloc_conf else cfg.get("pytorch_cuda_alloc_conf")
-    )
+    pa_conf = ns.pytorch_alloc_conf if ns.pytorch_alloc_conf else cfg.get("pytorch_cuda_alloc_conf")
     if pa_conf is not None:
         _os.environ["PYTORCH_CUDA_ALLOC_CONF"] = str(pa_conf)
     cuda_devices = (
@@ -156,24 +199,72 @@ def main(argv: list[str] | None = None) -> int:
 
     # Merge config with CLI overrides
     set_config(
-        mode=(ns.mode.lower() if ns.mode else str(cfg.get("mode")).lower() if cfg.get("mode") else None),
+        mode=(
+            ns.mode.lower()
+            if ns.mode
+            else str(cfg.get("mode")).lower()
+            if cfg.get("mode")
+            else None
+        ),
         images=(
             True
             if ns.images
             else False
             if ns.no_images
-            else bool(cfg.get("images")) if cfg.get("images") is not None else None
+            else bool(cfg.get("images"))
+            if cfg.get("images") is not None
+            else None
         ),
-        outdir=(ns.outdir if ns.outdir is not None else str(cfg.get("outdir")) if cfg.get("outdir") else None),
-        min_chars=(ns.min_chars if ns.min_chars is not None else int(cfg.get("min_chars")) if cfg.get("min_chars") is not None else None),
-        min_ratio=(ns.min_ratio if ns.min_ratio is not None else float(cfg.get("min_ratio")) if cfg.get("min_ratio") is not None else None),
+        outdir=(
+            ns.outdir
+            if ns.outdir is not None
+            else str(cfg.get("outdir"))
+            if cfg.get("outdir")
+            else None
+        ),
+        min_chars=(
+            ns.min_chars
+            if ns.min_chars is not None
+            else int(cfg.get("min_chars"))
+            if cfg.get("min_chars") is not None
+            else None
+        ),
+        min_ratio=(
+            ns.min_ratio
+            if ns.min_ratio is not None
+            else float(cfg.get("min_ratio"))
+            if cfg.get("min_ratio") is not None
+            else None
+        ),
         mock=(True if ns.mock else bool(cfg.get("mock")) if cfg.get("mock") is not None else None),
         mock_fail=(
-            True if ns.mock_fail else bool(cfg.get("mock_fail")) if cfg.get("mock_fail") is not None else None
+            True
+            if ns.mock_fail
+            else bool(cfg.get("mock_fail"))
+            if cfg.get("mock_fail") is not None
+            else None
         ),
-        log_level=(ns.log_level if ns.log_level else str(cfg.get("log_level")).upper() if cfg.get("log_level") else None),
-        dry_run=(True if ns.dry_run else bool(cfg.get("dry_run")) if cfg.get("dry_run") is not None else None),
-        progress=(True if ns.progress else bool(cfg.get("progress")) if cfg.get("progress") is not None else None),
+        log_level=(
+            ns.log_level
+            if ns.log_level
+            else str(cfg.get("log_level")).upper()
+            if cfg.get("log_level")
+            else None
+        ),
+        dry_run=(
+            True
+            if ns.dry_run
+            else bool(cfg.get("dry_run"))
+            if cfg.get("dry_run") is not None
+            else None
+        ),
+        progress=(
+            True
+            if ns.progress
+            else bool(cfg.get("progress"))
+            if cfg.get("progress") is not None
+            else None
+        ),
     )
 
     files = list(iter_input_files(inp))

@@ -60,7 +60,18 @@ def set_config(
 
     Parameters mirror environment variables used by the CLI and legacy scripts.
     """
-    global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT, LOG_LEVEL, DRY_RUN, PROGRESS
+    global \
+        MODE, \
+        IMAGES, \
+        OUTDIR, \
+        MIN_CHARS, \
+        MIN_RATIO, \
+        MOCK, \
+        MOCK_FAIL, \
+        MOCK_FAIL_IF_SLICE_GT, \
+        LOG_LEVEL, \
+        DRY_RUN, \
+        PROGRESS
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -286,7 +297,7 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
             cur = max(5, cur // 2)
             log(f"[WARN ] retry with slice={cur}", level="WARNING")
             continue
-        done += (end - start + 1)
+        done += end - start + 1
         if PROGRESS and total > 0:
             pct = int((done * 100) / total)
             log(f"[PROG ] slice {start}-{end} ok; {done}/{total} pages ({pct}%) in {dt:.2f}s")
