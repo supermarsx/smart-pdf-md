@@ -28,6 +28,7 @@ LOWRES = 96
 HIGHRES = 120
 # Configurable globals (overridable via set_config)
 MODE = os.environ.get("SMART_PDF_MD_MODE", "auto").lower()
+ENGINE = os.environ.get("SMART_PDF_MD_ENGINE")
 MOCK = os.environ.get("SMART_PDF_MD_MARKER_MOCK", "0") == "1"
 MOCK_FAIL = os.environ.get("SMART_PDF_MD_MARKER_MOCK_FAIL", "0") == "1"
 IMAGES = os.environ.get("SMART_PDF_MD_IMAGES", "0") == "1"
@@ -64,6 +65,7 @@ def set_config(
     dry_run: bool | None = None,
     progress: bool | None = None,
     output_format: str | None = None,
+    engine: str | None = None,
     include: list[str] | None = None,
     exclude: list[str] | None = None,
     log_json: bool | None = None,
@@ -89,7 +91,8 @@ def set_config(
         INCLUDE, \
         EXCLUDE, \
         LOG_JSON, \
-        LOG_FILE
+        LOG_FILE, \
+        ENGINE
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -116,6 +119,8 @@ def set_config(
         PROGRESS = bool(progress)
     if output_format is not None:
         OUTPUT_FORMAT = str(output_format).lower()
+    if engine is not None:
+        ENGINE = engine
     if include is not None:
         INCLUDE = list(include)
     if exclude is not None:
@@ -311,6 +316,102 @@ def marker_single_pass(pdf: str, outdir: str | Path) -> int:
     return subprocess.run(cmd).returncode  # noqa: S603
 
 
+def _ensure_exec(name: str) -> str | None:
+    """Return executable path if found in PATH, else None."""
+    from shutil import which
+
+    return which(name)
+
+
+def convert_via_poppler(pdf: str, outdir: str | Path) -> int:
+    """Convert using Poppler's pdftohtml and markdownify.
+
+    Requires `pdftohtml` to be available on PATH and the Python package
+    `markdownify` (optional extra). Falls back with an error if missing.
+    """
+    exe = _ensure_exec("pdftohtml")
+    if not exe:
+        log("[ERROR] pdftohtml not found in PATH (install Poppler)", level="ERROR")
+        return 4
+    try:
+        import markdownify  # type: ignore
+    except Exception:
+        log("[ERROR] python package 'markdownify' not installed", level="ERROR")
+        return 4
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        html_path = Path(td) / "out.html"
+        cmd = [exe, "-s", "-i", "-q", "-noframes", str(pdf), str(html_path)]
+        log(f"[RUN  ] {' '.join(cmd)}")
+        rc = subprocess.run(cmd).returncode  # noqa: S603
+        if rc != 0:
+            log(f"[ERROR] pdftohtml rc={rc}", level="ERROR")
+            return 4
+        html = html_path.read_text(encoding="utf-8", errors="ignore")
+        md = markdownify.markdownify(html, heading_style="ATX")
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(md, encoding="utf-8")
+    log(f"[OK   ] poppler-html2md {pdf} -> {out}")
+    return 0
+
+
+def convert_via_pdfminer(pdf: str, outdir: str | Path) -> int:
+    """Convert using pdfminer.six high-level text extraction."""
+    try:
+        from pdfminer.high_level import extract_text  # type: ignore
+    except Exception:
+        log("[ERROR] python package 'pdfminer.six' not installed", level="ERROR")
+        return 4
+    text = extract_text(pdf) or ""
+    out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+    out.write_text(text, encoding="utf-8")
+    log(f"[OK   ] pdfminer {pdf} -> {out}")
+    return 0
+
+
+def convert_via_pdfplumber(pdf: str, outdir: str | Path) -> int:
+    """Convert using pdfplumber page-wise text extraction."""
+    try:
+        import pdfplumber  # type: ignore
+    except Exception:
+        log("[ERROR] python package 'pdfplumber' not installed", level="ERROR")
+        return 4
+    parts: list[str] = []
+    with pdfplumber.open(pdf) as doc:  # type: ignore[attr-defined]
+        for page in doc.pages:
+            txt = page.extract_text() or ""
+            parts.append(txt)
+    text = "\n\n".join(parts)
+    out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+    out.write_text(text, encoding="utf-8")
+    log(f"[OK   ] pdfplumber {pdf} -> {out}")
+    return 0
+
+
+def convert_via_ocrmypdf(pdf: str, outdir: str | Path) -> int:
+    """Convert with OCRmyPDF to add a text layer, then fast convert.
+
+    Requires `ocrmypdf` CLI (and system Tesseract). If successful, routes
+    the OCRed PDF through the fast PyMuPDF text converter.
+    """
+    exe = _ensure_exec("ocrmypdf")
+    if not exe:
+        log("[ERROR] ocrmypdf not found in PATH (install OCRmyPDF/Tesseract)", level="ERROR")
+        return 4
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        ocr_pdf = Path(td) / "ocr.pdf"
+        cmd = [exe, "--skip-text", "--quiet", str(pdf), str(ocr_pdf)]
+        log(f"[RUN  ] {' '.join(cmd)}")
+        rc = subprocess.run(cmd).returncode  # noqa: S603
+        if rc != 0 or not ocr_pdf.exists():
+            log(f"[ERROR] ocrmypdf rc={rc}", level="ERROR")
+            return 4
+        return convert_text(str(ocr_pdf), str(outdir))
+
+
 def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
     """Execute marker for a page slice (inclusive indices), or mock when enabled."""
     if DRY_RUN:
@@ -418,6 +519,24 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
             log("[DRY  ] mode=auto -> would route based on heuristics (not evaluated in dry-run)")
         return 0
     try:
+        # Forced engine overrides mode/heuristics when provided
+        if ENGINE:
+            eng = ENGINE.lower()
+            log(f"[eng  ] FORCED ENGINE -> {eng}")
+            if eng in ("pymupdf", "fast"):
+                return convert_text(str(pdf), str(outdir))
+            if eng in ("marker",):
+                return marker_convert(str(pdf), str(outdir), slice_pages)
+            if eng in ("poppler", "poppler-html2md", "html2md"):
+                return convert_via_poppler(str(pdf), str(outdir))
+            if eng in ("pdfminer", "pdfminer.six"):
+                return convert_via_pdfminer(str(pdf), str(outdir))
+            if eng in ("pdfplumber",):
+                return convert_via_pdfplumber(str(pdf), str(outdir))
+            if eng in ("ocrmypdf", "ocr"):
+                return convert_via_ocrmypdf(str(pdf), str(outdir))
+            log(f"[ERROR] unknown engine: {ENGINE}", level="ERROR")
+            return 9
         if MODE == "fast":
             log("[path ] FORCED FAST -> PyMuPDF")
             return convert_text(str(pdf), str(outdir))

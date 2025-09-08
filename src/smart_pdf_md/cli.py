@@ -78,6 +78,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set environment variable(s); can be repeated",
     )
     p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
+    p.add_argument(
+        "-e",
+        "--engine",
+        choices=[
+            "auto",
+            "pymupdf",
+            "fast",
+            "marker",
+            "poppler",
+            "poppler-html2md",
+            "html2md",
+            "pdfminer",
+            "pdfplumber",
+            "ocrmypdf",
+            "ocr",
+        ],
+        help="Force a specific conversion engine",
+    )
     p.add_argument("-o", "--out", dest="outdir", help="Output directory")
     p.add_argument(
         "-f",
@@ -219,6 +237,7 @@ def main(argv: list[str] | None = None) -> int:
         "SMART_PDF_MD_PROGRESS",
         "SMART_PDF_MD_PYTHON",
         "SMART_PDF_MD_COVERAGE",
+        "SMART_PDF_MD_ENGINE",
         # Marker/Torch common envs
         "TORCH_DEVICE",
         "OCR_ENGINE",
@@ -377,6 +396,13 @@ def main(argv: list[str] | None = None) -> int:
         ),
         log_json=(True if cfg.get("log_json") else None),
         log_file=(str(cfg.get("log_file")) if cfg.get("log_file") else None),
+        engine=(
+            ns.engine.lower()
+            if ns.engine
+            else str(cfg.get("engine")).lower()
+            if cfg.get("engine")
+            else None
+        ),
     )
 
     files = list(iter_input_files(inp))

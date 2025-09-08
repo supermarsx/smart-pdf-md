@@ -21,6 +21,18 @@ fast = [
 marker = [
   "marker-pdf",
 ]
+poppler = [
+  "markdownify",
+]
+pdfminer = [
+  "pdfminer.six",
+]
+pdfplumber = [
+  "pdfplumber",
+]
+ocr = [
+  "ocrmypdf",
+]
 
 [project.urls]
 Homepage = "https://github.com/supermarsx/smart-pdf-md"
