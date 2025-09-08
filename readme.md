@@ -16,7 +16,7 @@
 [![codecov](https://codecov.io/gh/supermarsx/smart-pdf-md/branch/main/graph/badge.svg)](https://codecov.io/gh/supermarsx/smart-pdf-md)
 -->
 
-Windows batch script to **mass-convert PDF (.pdf) to Markdown (.md)** with smart routing:
+Python CLI to **mass-convert PDF (.pdf) to Markdown (.md)** with smart routing:
 
 * **Textual PDFs →** fast text extraction via **PyMuPDF** (fitz)
 * **Scanned/non-textual PDFs →** robust conversion via **Marker** (`marker-pdf` / `marker_single`), with automatic **page slicing** to avoid OOM/timeouts
@@ -24,7 +24,7 @@ Windows batch script to **mass-convert PDF (.pdf) to Markdown (.md)** with smart
 
 ## Why “smart”?
 
-`smart-pdf-md.bat` inspects each PDF. If enough pages contain real text, it uses PyMuPDF (much faster). Otherwise it falls back to Marker’s high‑quality PDF→Markdown path. Very large PDFs are processed in **slices** (configurable, default 40 pages) to increase reliability.
+The tool inspects each PDF. If enough pages contain real text, it uses PyMuPDF (much faster). Otherwise it falls back to Marker’s high‑quality PDF→Markdown path. Very large PDFs are processed in **slices** (configurable, default 40 pages) to increase reliability.
 
 
 ## Features
@@ -67,15 +67,15 @@ Run one of the following from the repo or an installed environment:
 
 **Examples**
 
-```bat
-:: Convert all PDFs recursively under the current folder (default slice=40)
-smart-pdf-md.bat
+```
+# Convert all PDFs recursively under the current folder (default slice=40)
+smart-pdf-md . 40
 
-:: Convert one folder, larger slices (50 pages)
-smart-pdf-md.bat "D:\Docs\Handbooks" 50
+# Convert one folder, larger slices (50 pages)
+smart-pdf-md "./docs/Handbooks" 50
 
-:: Convert a single file
-smart-pdf-md.bat "C:\Reports\2024\survey.pdf"
+# Convert a single file
+smart-pdf-md "./reports/2024/survey.pdf" 40
 ```
 
 **Output location**
@@ -304,7 +304,7 @@ PRs for:
 Check out `license.md`.
 
 
-## Appendix: Command reference (summary)
+
 
 ```
 Usage: smart-pdf-md.bat [INPUT] [SLICE]
@@ -399,5 +399,7 @@ python -m pip install -e .
   - Use `-S/--include` and `-X/--exclude` globs to narrow scope.
 - Logs hard to parse
   - Use `--log-json` and `--log-file run.log` for structured logging and archival.
+
+
 
 
