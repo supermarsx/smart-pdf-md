@@ -10,7 +10,9 @@ readme = "readme.md"
 requires-python = ">=3.11"
 authors = [{name = "smart-pdf-md maintainers"}]
 license = {text = "MIT"}
-dependencies = []
+dependencies = [
+  "PyYAML>=6.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/supermarsx/smart-pdf-md"

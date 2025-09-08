@@ -156,7 +156,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U pip
-          python -m pip install pyinstaller pymupdf marker-pdf
+          python -m pip install pyinstaller pymupdf marker-pdf PyYAML
       - name: Build binary
         run: |
           pyinstaller -F -n smart-pdf-md src/smart_pdf_md/__main__.py

@@ -16,8 +16,14 @@ from .core import iter_input_files, process_one, log, set_config
 def build_parser() -> argparse.ArgumentParser:
     """Create and return the CLI argument parser."""
     p = argparse.ArgumentParser(prog="smart-pdf-md", add_help=True)
-    p.add_argument("input", help="Input PDF file or directory")
-    p.add_argument("slice", type=int, help="Slice size for marker path")
+    p.add_argument("input", nargs="?", help="Input PDF file or directory")
+    p.add_argument("slice", nargs="?", type=int, help="Slice size for marker path")
+    p.add_argument(
+        "-C",
+        "--config",
+        dest="config",
+        help="Path to a config file (.toml/.yaml/.yml/.json)",
+    )
     p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
     p.add_argument("-o", "--out", dest="outdir", help="Output directory")
     g = p.add_mutually_exclusive_group()
@@ -51,18 +57,43 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     ns = parser.parse_args(argv if argv is not None else None)
 
-    inp = Path(ns.input)
-    slice_pages = int(ns.slice)
+    cfg: dict[str, object] = {}
+    if ns.config:
+        from .config import load_config_file
 
+        try:
+            cfg = load_config_file(ns.config)
+        except Exception as e:  # pragma: no cover - I/O/parsing
+            log(f"[ERROR] config load failed: {e!r}", level="ERROR")
+            return 2
+
+    # Resolve input and slice from CLI or config
+    inp_val = ns.input if ns.input is not None else cfg.get("input")
+    slice_val = ns.slice if ns.slice is not None else cfg.get("slice")
+    if inp_val is None or slice_val is None:
+        log("[USAGE] smart-pdf-md INPUT SLICE [-C CONFIG] [options]")
+        return 2
+    inp = Path(str(inp_val))
+    slice_pages = int(slice_val)  # type: ignore[arg-type]
+
+    # Merge config with CLI overrides
     set_config(
-        mode=(ns.mode.lower() if ns.mode else None),
-        images=(True if ns.images else False if ns.no_images else None),
-        outdir=ns.outdir,
-        min_chars=ns.min_chars,
-        min_ratio=ns.min_ratio,
-        mock=True if ns.mock else None,
-        mock_fail=True if ns.mock_fail else None,
-        log_level=ns.log_level,
+        mode=(ns.mode.lower() if ns.mode else str(cfg.get("mode")).lower() if cfg.get("mode") else None),
+        images=(
+            True
+            if ns.images
+            else False
+            if ns.no_images
+            else bool(cfg.get("images")) if cfg.get("images") is not None else None
+        ),
+        outdir=(ns.outdir if ns.outdir is not None else str(cfg.get("outdir")) if cfg.get("outdir") else None),
+        min_chars=(ns.min_chars if ns.min_chars is not None else int(cfg.get("min_chars")) if cfg.get("min_chars") is not None else None),
+        min_ratio=(ns.min_ratio if ns.min_ratio is not None else float(cfg.get("min_ratio")) if cfg.get("min_ratio") is not None else None),
+        mock=(True if ns.mock else bool(cfg.get("mock")) if cfg.get("mock") is not None else None),
+        mock_fail=(
+            True if ns.mock_fail else bool(cfg.get("mock_fail")) if cfg.get("mock_fail") is not None else None
+        ),
+        log_level=(ns.log_level if ns.log_level else str(cfg.get("log_level")).upper() if cfg.get("log_level") else None),
     )
 
     files = list(iter_input_files(inp))
