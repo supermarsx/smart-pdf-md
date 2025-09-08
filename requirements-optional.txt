@@ -1,0 +1,12 @@
+# Optional engines and features used by smart-pdf-md
+# Install with: pip install -r requirements-optional.txt
+
+markdownify        # poppler html->md
+pdfminer.six       # pdfminer engine
+pdfplumber         # pdfplumber engine
+pymupdf4llm        # layout engine
+docling            # docling engine
+camelot-py[cv]     # table extraction (lattice support)
+pandas             # tables to markdown rendering
+ocrmypdf           # OCR preprocessing engine
+
