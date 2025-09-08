@@ -273,7 +273,10 @@ def main(argv: list[str] | None = None) -> int:
     if isinstance(cfg.get("env"), dict):
         import os as _os
 
-        for k, v in cfg["env"].items():
+        from typing import cast
+
+        env_cfg = cast(dict[str, object], cfg["env"])  # narrow type for mypy
+        for k, v in env_cfg.items():
             _os.environ[str(k)] = str(v)
             _warn_unknown_env(str(k))
     if ns.env:
@@ -314,13 +317,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     inp = Path(str(inp_val))
     try:
-        slice_pages = int(slice_val)  # type: ignore[call-overload]
+        slice_pages = int(str(slice_val))
     except Exception:
-        try:
-            slice_pages = int(str(slice_val))
-        except Exception:
-            log("[ERROR] invalid slice value", level="ERROR")
-            return 2
+        log("[ERROR] invalid slice value", level="ERROR")
+        return 2
 
     # Merge config with CLI overrides
     set_config(
@@ -350,14 +350,14 @@ def main(argv: list[str] | None = None) -> int:
         min_chars=(
             ns.min_chars
             if ns.min_chars is not None
-            else int(cfg.get("min_chars"))
+            else int(str(cfg.get("min_chars")))
             if cfg.get("min_chars") is not None
             else None
         ),
         min_ratio=(
             ns.min_ratio
             if ns.min_ratio is not None
-            else float(cfg.get("min_ratio"))
+            else float(str(cfg.get("min_ratio")))
             if cfg.get("min_ratio") is not None
             else None
         ),
@@ -400,14 +400,14 @@ def main(argv: list[str] | None = None) -> int:
         include=(
             ns.include
             if ns.include
-            else list(cfg.get("include"))
+            else cast(list[str], cfg.get("include"))
             if isinstance(cfg.get("include"), list)
             else None
         ),
         exclude=(
             ns.exclude
             if ns.exclude
-            else list(cfg.get("exclude"))
+            else cast(list[str], cfg.get("exclude"))
             if isinstance(cfg.get("exclude"), list)
             else None
         ),

@@ -227,7 +227,7 @@ def which_marker_single() -> list[str]:
     return [sys.executable, "-m", "marker.scripts.convert_single"]
 
 
-def try_open(pdf: str):  # type: ignore[override]
+def try_open(pdf: str):
     """Best-effort open of a PDF via PyMuPDF; returns None on failure."""
     if not fitz:
         log(f"[WARN ] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}", level="WARNING")
@@ -255,7 +255,7 @@ def is_textual(
         if total == 0:
             return False
         text_pages = 0
-        for page in doc:  # type: ignore[assignment]
+        for page in doc:
             t = page.get_text("text")
             if t and len("".join(t.split())) >= min_chars_per_page:
                 text_pages += 1
@@ -284,7 +284,7 @@ def convert_text(pdf: str, outdir: str | Path) -> int:
         ext = ".txt" if OUTPUT_FORMAT == "txt" else ".md"
         out_path = Path(outdir) / (stem + ext)
         with out_path.open("w", encoding="utf-8") as fh:
-            for idx, p in enumerate(doc, 1):  # type: ignore[assignment]
+            for idx, p in enumerate(doc, 1):
                 text = p.get_text("text")
                 if idx > 1:
                     fh.write("\n\n")
@@ -346,7 +346,7 @@ def convert_via_poppler(pdf: str, outdir: str | Path) -> int:
         log("[ERROR] pdftohtml not found in PATH (install Poppler)", level="ERROR")
         return 4
     try:
-        import markdownify  # type: ignore
+        import markdownify
     except Exception:
         log("[ERROR] python package 'markdownify' not installed", level="ERROR")
         return 4
@@ -371,7 +371,7 @@ def convert_via_poppler(pdf: str, outdir: str | Path) -> int:
 def convert_via_pdfminer(pdf: str, outdir: str | Path) -> int:
     """Convert using pdfminer.six high-level text extraction."""
     try:
-        from pdfminer.high_level import extract_text  # type: ignore
+        from pdfminer.high_level import extract_text
     except Exception:
         log("[ERROR] python package 'pdfminer.six' not installed", level="ERROR")
         return 4
@@ -385,12 +385,12 @@ def convert_via_pdfminer(pdf: str, outdir: str | Path) -> int:
 def convert_via_pdfplumber(pdf: str, outdir: str | Path) -> int:
     """Convert using pdfplumber page-wise text extraction."""
     try:
-        import pdfplumber  # type: ignore
+        import pdfplumber
     except Exception:
         log("[ERROR] python package 'pdfplumber' not installed", level="ERROR")
         return 4
     parts: list[str] = []
-    with pdfplumber.open(pdf) as doc:  # type: ignore[attr-defined]
+    with pdfplumber.open(pdf) as doc:
         for page in doc.pages:
             txt = page.extract_text() or ""
             parts.append(txt)
@@ -427,7 +427,7 @@ def convert_via_ocrmypdf(pdf: str, outdir: str | Path) -> int:
 def convert_via_layout(pdf: str, outdir: str | Path) -> int:
     """Convert using PyMuPDF4LLM to Markdown (layout-aware)."""
     try:
-        from pymupdf4llm import to_markdown  # type: ignore
+        from pymupdf4llm import to_markdown
     except Exception:
         log("[ERROR] python package 'pymupdf4llm' not installed", level="ERROR")
         return 4
@@ -459,7 +459,7 @@ def extract_tables_to_md(pdf: str, outdir: str | Path, *, flavor: str | None = N
     if not TABLES:
         return
     try:
-        import camelot  # type: ignore
+        import camelot
     except Exception:
         log("[WARN ] --tables set but 'camelot-py' not installed", level="WARNING")
         return
@@ -467,7 +467,7 @@ def extract_tables_to_md(pdf: str, outdir: str | Path, *, flavor: str | None = N
     tables = None
 
     def _read(fl: str):
-        return camelot.read_pdf(pdf, pages="all", flavor=fl)  # type: ignore[attr-defined]
+        return camelot.read_pdf(pdf, pages="all", flavor=fl)
 
     try:
         if mode == "auto":
@@ -515,7 +515,7 @@ def convert_via_docling(pdf: str, outdir: str | Path) -> int:
     Requires the `docling` package. Produces markdown via Docling's converter.
     """
     try:
-        from docling.document_converter import DocumentConverter, DocumentInput  # type: ignore
+        from docling.document_converter import DocumentConverter, DocumentInput
     except Exception:
         log("[ERROR] python package 'docling' not installed", level="ERROR")
         return 4
@@ -523,7 +523,7 @@ def convert_via_docling(pdf: str, outdir: str | Path) -> int:
         conv = DocumentConverter()
         di = DocumentInput.with_pdf(str(pdf))
         res = conv.convert(di)
-        md = res.document.export_to_markdown()  # type: ignore[attr-defined]
+        md = res.document.export_to_markdown()
     except Exception as e:  # pragma: no cover - best effort
         log(f"[ERROR] docling conversion failed: {e!r}", level="ERROR")
         return 4
