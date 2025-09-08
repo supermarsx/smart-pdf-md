@@ -52,21 +52,11 @@ Windows batch script to **mass-convert PDF (.pdf) to Markdown (.md)** with smart
 
 ## Quick Start
 
-1. Place `smart-pdf-md.bat` anywhere on your system (or clone/download the repo).
-2. Open **Command Prompt** in the folder containing your PDFs, or pass a path.
-3. Run:
+Run one of the following from the repo or an installed environment:
 
-On Windows (CMD):
-
-```bat
-smart-pdf-md.bat [INPUT] [SLICE] [FLAGS]
-```
-
-On Linux/macOS (bash):
-
-```bash
-bash smart-pdf-md.sh [INPUT] [SLICE] [FLAGS]
-```
+- From source (repo root): `python smart-pdf-md.py INPUT SLICE [options]`
+- As a module: `python -m smart_pdf_md INPUT SLICE [options]`
+- Installed script: `smart-pdf-md INPUT SLICE [options]`
 
 **Arguments**
 
