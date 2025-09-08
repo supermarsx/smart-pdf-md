@@ -1,3 +1,10 @@
+"""Core conversion logic for smart-pdf-md.
+
+Provides routing between a fast text-extraction path (PyMuPDF) and the Marker pipeline
+with slice-based backoff for robustness. Public functions include small, focused
+docstrings and typed parameters for clarity.
+"""
+
 from __future__ import annotations
 
 import os
@@ -41,6 +48,10 @@ def set_config(
     mock_fail: bool | None = None,
     mock_fail_if_slice_gt: int | None = None,
 ) -> None:
+    """Override runtime configuration values in memory.
+
+    Parameters mirror environment variables used by the CLI and legacy scripts.
+    """
     global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT
     if mode is not None:
         MODE = mode
@@ -61,10 +72,12 @@ def set_config(
 
 
 def log(msg: str) -> None:
+    """Print a single-line message, flushed immediately."""
     print(msg, flush=True)
 
 
 def mock_write_markdown(pdf: str, outdir: str | Path, note: str) -> int:
+    """Write a small mock Markdown file for test/mocked runs and return 0."""
     out_path = Path(outdir) / (Path(pdf).stem + ".md")
     prev = out_path.read_text(encoding="utf-8") if out_path.exists() else ""
     text = f"# MOCK MARKER OUTPUT\n{note}\nSource: {pdf}\n"
@@ -73,6 +86,10 @@ def mock_write_markdown(pdf: str, outdir: str | Path, note: str) -> int:
 
 
 def which_marker_single() -> list[str]:
+    """Return command to invoke marker's single-file converter.
+
+    Prefers the `marker_single` executable; falls back to `python -m marker...`.
+    """
     p = shutil.which("marker_single")
     if p:
         return [p]
@@ -98,6 +115,7 @@ def which_marker_single() -> list[str]:
 
 
 def try_open(pdf: str):  # type: ignore[override]
+    """Best-effort open of a PDF via PyMuPDF; returns None on failure."""
     if not fitz:
         log(f"[WARN ] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
         return None
@@ -111,6 +129,7 @@ def try_open(pdf: str):  # type: ignore[override]
 def is_textual(
     pdf: str, min_chars_per_page: int | None = None, min_ratio: float | None = None
 ) -> bool:
+    """Heuristic to decide if a PDF likely contains real text pages."""
     if min_chars_per_page is None:
         min_chars_per_page = MIN_CHARS
     if min_ratio is None:
@@ -133,6 +152,7 @@ def is_textual(
 
 
 def convert_text(pdf: str, outdir: str | Path) -> int:
+    """Extract plain text from each page using PyMuPDF and write Markdown."""
     if not fitz:
         log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
         return 1
@@ -151,6 +171,7 @@ def convert_text(pdf: str, outdir: str | Path) -> int:
 
 
 def marker_single_pass(pdf: str, outdir: str | Path) -> int:
+    """Execute marker once for all pages, or mock when enabled."""
     if MOCK:
         if MOCK_FAIL:
             return 1
@@ -174,6 +195,7 @@ def marker_single_pass(pdf: str, outdir: str | Path) -> int:
 
 
 def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
+    """Execute marker for a page slice (inclusive indices), or mock when enabled."""
     if MOCK:
         if MOCK_FAIL or (MOCK_FAIL_IF_SLICE_GT and (end - start + 1) > MOCK_FAIL_IF_SLICE_GT):
             return 1
@@ -197,6 +219,7 @@ def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
 
 
 def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
+    """Convert using slice-based backoff; falls back to single-pass on open failure."""
     doc = try_open(pdf)
     if not doc:
         rc = marker_single_pass(pdf, outdir)
@@ -228,6 +251,7 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
 
 
 def iter_input_files(inp: Path) -> Iterable[Path]:
+    """Yield one or many PDF paths depending on input being a file or directory."""
     if inp.exists() and inp.is_dir():
         files = sorted(p for p in inp.rglob("*.pdf"))
         log(f"[scan ] folder: {inp}  files={len(files)}")
@@ -240,6 +264,7 @@ def iter_input_files(inp: Path) -> Iterable[Path]:
 
 
 def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
+    """Process a single PDF and return an exit code reflecting the outcome."""
     outdir = Path(OUTDIR) if OUTDIR else pdf.parent
     outdir.mkdir(parents=True, exist_ok=True)
     log("=" * 64)

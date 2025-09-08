@@ -1,5 +1,8 @@
-__all__ = [
-    "main",
-]
+"""Top-level package for smart-pdf-md.
+
+Exports a version string and keeps surface area minimal.
+"""
+
+__all__ = ["__version__"]
 
 __version__ = "0.1.0"
