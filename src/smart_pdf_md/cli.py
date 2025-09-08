@@ -14,6 +14,34 @@ from .core import iter_input_files, process_one, log, set_config
 from . import __version__
 
 
+def _compute_version() -> str:
+    """Return a version string, optionally with git metadata if available."""
+    base = f"smart-pdf-md {__version__}"
+    try:
+        import subprocess
+        import os
+
+        git_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".git"))
+        if not os.path.isdir(git_dir):
+            return base
+        sha = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL)
+            .decode()
+            .strip()
+        )
+        date = (
+            subprocess.check_output(
+                ["git", "show", "-s", "--format=%cd", "--date=iso-strict", "HEAD"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+        return f"{base} (git {sha} {date})"
+    except Exception:
+        return base
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Create and return the CLI argument parser."""
     p = argparse.ArgumentParser(prog="smart-pdf-md", add_help=True)
@@ -70,7 +98,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-V",
         "--version",
         action="version",
-        version=f"smart-pdf-md {__version__}",
+        version=_compute_version(),
         help="Show version and exit",
     )
     g = p.add_mutually_exclusive_group()
@@ -108,6 +136,10 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show incremental progress (pages, slices) while processing",
     )
+    p.add_argument("-q", "--quiet", action="store_true", help="Set log level to ERROR (overridden by --log-level)")
+    p.add_argument("-v", "--verbose", action="store_true", help="Set log level to DEBUG (overridden by --log-level)")
+    p.add_argument("--log-json", action="store_true", help="Emit logs as JSON lines (ts, level, message)")
+    p.add_argument("--log-file", help="Append logs to a file (1MB simple rotation)")
     p.add_argument(
         "--no-warn-unknown-env",
         action="store_true",
@@ -330,3 +362,6 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
+
+
+
