@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+            py: '3.11'
+          - os: ubuntu-22.04-arm64
+            target: linux-arm64
+            py: '3.11'
+          - os: macos-13
+            target: macos-x86_64
+            py: '3.11'
+          - os: macos-14
+            target: macos-arm64
+            py: '3.11'
+          - os: windows-latest
+            target: windows-x86_64
+            py: '3.11'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py }}
+          cache: 'pip'
+
+      - name: Install build deps
+        run: |
+          python -m pip install -U pip
+          python -m pip install pyinstaller pymupdf marker-pdf
+
+      - name: Build binary
+        run: |
+          pyinstaller smart_pdf_md_driver.py --onefile -n smart-pdf-md
+
+      - name: Rename artifact (non-Windows)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x dist/smart-pdf-md || true
+          mv dist/smart-pdf-md "dist/smart-pdf-md-${{ matrix.target }}"
+
+      - name: Rename artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Move-Item dist/smart-pdf-md.exe "dist/smart-pdf-md-${{ matrix.target }}.exe"
+
+      - name: Checksums
+        shell: bash
+        run: |
+          cd dist
+          for f in *smart-pdf-md*; do
+            shasum -a 256 "$f" > "$f.sha256" || sha256sum "$f" > "$f.sha256" || true
+          done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: bin-*
+          merge-multiple: true
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          tag="${GITHUB_REF##*/}"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+          echo "name=Release $tag" >> $GITHUB_OUTPUT
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.notes.outputs.tag }}
+          name: ${{ steps.notes.outputs.name }}
+          generate_release_notes: true
+          files: |
+            dist/*
+
