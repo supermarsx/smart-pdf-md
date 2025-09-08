@@ -6,6 +6,7 @@ pytest
 pytest-cov
 pymupdf
 ruff
+mypy
 build
 twine
 pip-tools
