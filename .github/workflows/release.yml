@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  USE_UV: '0'
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
@@ -44,11 +47,24 @@ jobs:
         with:
           python-version: ${{ matrix.py }}
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements.in
+            requirements-dev.in
+            pyproject.toml
+      - name: Setup uv (optional)
+        if: env.USE_UV == '1'
+        uses: astral-sh/setup-uv@v5
 
       - name: Install build deps
         run: |
-          python -m pip install -U pip
-          python -m pip install pyinstaller pymupdf marker-pdf
+          if [ "${{ env.USE_UV }}" = "1" ]; then
+            uv pip install --system pyinstaller pymupdf marker-pdf
+          else
+            python -m pip install -U pip
+            python -m pip install pyinstaller pymupdf marker-pdf
+          fi
 
       - name: Build binary
         run: |

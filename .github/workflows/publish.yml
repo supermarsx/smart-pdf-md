@@ -20,6 +20,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  USE_UV: '0'
+
 jobs:
   build:
     name: Build artifacts
@@ -32,10 +35,23 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements.in
+            requirements-dev.in
+            pyproject.toml
+      - name: Setup uv (optional)
+        if: env.USE_UV == '1'
+        uses: astral-sh/setup-uv@v5
       - name: Install build tooling
         run: |
-          python -m pip install -U pip
-          python -m pip install build twine
+          if [ "${{ env.USE_UV }}" = "1" ]; then
+            uv pip install --system build twine
+          else
+            python -m pip install -U pip
+            python -m pip install build twine
+          fi
       - name: Build sdist and wheel
         run: |
           python -m build
