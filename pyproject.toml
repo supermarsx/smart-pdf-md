@@ -1,7 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-pdf-md"
+version = "0.1.0"
+description = "Smart PDF → Markdown converter with fast text path and marker fallback"
+readme = "readme.md"
+requires-python = ">=3.11"
+authors = [{name = "smart-pdf-md maintainers"}]
+license = {text = "MIT"}
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/supermarsx/smart-pdf-md"
+Repository = "https://github.com/supermarsx/smart-pdf-md"
+
+[project.scripts]
+smart-pdf-md = "smart_pdf_md.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = [".", "tests"]
+src = ["src", "tests"]
 exclude = [
   ".git",
   "__pycache__",

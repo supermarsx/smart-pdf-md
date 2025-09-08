@@ -1,0 +1,70 @@
+            log('[path ] FORCED FAST -> PyMuPDF')
+            convert_text(str(pdf), str(outdir))
+            return 0
+        if MODE == 'marker':
+            log('[path ] FORCED MARKER -> marker_single')
+            return marker_convert(str(pdf), str(outdir), slice_pages)
+        if is_textual(str(pdf)):
+            log('[path ] TEXTUAL -> fast PyMuPDF')
+            convert_text(str(pdf), str(outdir))
+            return 0
+        log('[path ] NON-TEXTUAL -> marker_single')
+        return marker_convert(str(pdf), str(outdir), slice_pages)
+    except Exception as e:
+        log(f'[FALL ] unhandled error: {e!r}')
+        return 9
+
+def main():
+    if len(sys.argv) < 3:
+        log('[USAGE] smart_pdf_md_driver.py INPUT SLICE')
+        sys.exit(2)
+    inp = Path(sys.argv[1])
+    slice_pages = int(sys.argv[2])
+    if inp.exists() and inp.is_dir():
+        files = sorted([p for p in inp.rglob('*.pdf')])
+        log(f'[scan ] folder: {inp}  files={len(files)}')
+    elif inp.exists():
+        files = [inp]
+        log(f'[scan ] single file: {inp}')
+    else:
+        log(f'[ERROR] input not found: {inp}')
+        sys.exit(1)
+    t0 = time.perf_counter()
+    fails = 0
+    exit_code = 0
+    for i, f in enumerate(files, 1):
+        try:
+            rc = process_one(f, i, len(files), slice_pages)
+        except Exception as e:
+            log(f'[CRASH] {f}: {e!r}')
+            rc = 10
+        if rc != 0:
+            fails += 1
+            if exit_code == 0:
+                exit_code = rc
+    log(f'[DONE ] total={len(files)} failures={fails} elapsed={time.perf_counter()-t0:.2f}s')
+    sys.exit(exit_code)
+
+if __name__ == '__main__': main()
+PY
+
+echo "[lint] py_compile driver ..."
+python - <<PY
+import py_compile, sys
+py_compile.compile(r"$PYDRV", doraise=True)
+print("[lint] OK")
+PY
+
+PY_EXEC="python"
+if [[ "${SMART_PDF_MD_COVERAGE:-0}" == "1" ]]; then PY_EXEC="python -m coverage run -p"; fi
+echo "[run ] $PY_EXEC \"$PYDRV\" \"$INPUT\" $SLICE"
+set +e
+$PY_EXEC "$PYDRV" "$INPUT" "$SLICE"
+RC=$?
+set -e
+echo "[exit] Driver returned $RC"
+
+echo "========================================================="
+echo "[done] smart_pdf_md.sh finished."
+echo "========================================================="
+exit $RC

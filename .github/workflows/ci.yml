@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint (ruff + shellcheck)
+    name: Lint (ruff)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,15 +29,9 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -r requirements-dev.txt
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
       - name: Ruff
         run: |
           python -m ruff check .
-      - name: ShellCheck (bash script)
-        run: |
-          shellcheck --version
-          shellcheck smart-pdf-md.sh
 
   format:
     name: Format
@@ -82,36 +76,30 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -r requirements-dev.txt
+          python -m pip install -e .
       - name: Run tests
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"
         run: |
           python -m pytest -q --cov=tests --cov-report=term-missing --cov-report=xml:coverage.pytest.xml
-      - name: Script smoke (mock) - non-Windows (with coverage)
-        if: runner.os != 'Windows'
+      - name: Script smoke (mock)
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"
           SMART_PDF_MD_COVERAGE: "1"
         run: |
           python - <<'PY'
-          import sys
           from pathlib import Path
           import fitz
           p = Path('smoke.pdf')
           doc = fitz.open(); doc.new_page(); doc.save(p); doc.close()
           PY
-          bash smart-pdf-md.sh smoke.pdf 5 --mock
-          test -f smoke.md
-      - name: Script smoke (mock) - Windows (with coverage)
-        if: runner.os == 'Windows'
-        env:
-          SMART_PDF_MD_MARKER_MOCK: "1"
-          SMART_PDF_MD_COVERAGE: "1"
-        shell: pwsh
-        run: |
-          python -c "from pathlib import Path; import fitz; p=Path('smoke.pdf'); doc=fitz.open(); doc.new_page(); doc.save(p); doc.close()"
-          .\smart-pdf-md.bat smoke.pdf 5 --mock
-          if (-not (Test-Path smoke.md)) { exit 1 }
+          python -m smart_pdf_md smoke.pdf 5
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          p = Path('smoke.md')
+          sys.exit(0 if p.exists() else 1)
+          PY
       - name: Combine coverage and create reports
         run: |
           python -m coverage combine || true
@@ -176,7 +164,7 @@ jobs:
           python -m pip install pyinstaller pymupdf marker-pdf
       - name: Build binary
         run: |
-          pyinstaller smart_pdf_md_driver.py --onefile -n smart-pdf-md
+          pyinstaller -F -n smart-pdf-md src/smart_pdf_md/__main__.py
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

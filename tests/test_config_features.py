@@ -38,14 +38,7 @@ def make_blank_pdf(path: Path) -> None:
 def run_batch(
     input_path: Path, *, env: dict | None = None, slice_pages: int = 40
 ) -> subprocess.CompletedProcess:
-    root = Path(__file__).resolve().parents[1]
-    if os.name == "nt":
-        script = root / "smart-pdf-md.bat"
-        cmd = [str(script), str(input_path), str(slice_pages)]
-    else:
-        script = root / "smart-pdf-md.sh"
-        cmd = ["bash", str(script), str(input_path), str(slice_pages)]
-    assert script.exists(), f"Missing script at {script}"
+    cmd = [sys.executable, "-m", "smart_pdf_md", str(input_path), str(slice_pages)]
     proc_env = os.environ.copy()
     if env:
         proc_env.update(env)

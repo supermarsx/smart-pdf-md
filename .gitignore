@@ -8,13 +8,14 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Outputs and temp files
-*.md~
-{out}
-fast
-marker_single')
-MOCK_FAIL_IF_SLICE_GT)
-PyMuPDF')
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Test artifacts
+smoke.pdf
+smoke.md
 
 # Editors
 .vscode/

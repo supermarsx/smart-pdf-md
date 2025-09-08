@@ -26,15 +26,12 @@ def make_blank_pdf(path: Path, pages: int = 1) -> None:
 
 
 def run_script(args: list[str], *, env: dict | None = None) -> subprocess.CompletedProcess:
-    root = Path(__file__).resolve().parents[1]
-    if os.name == "nt":
-        script = root / "smart-pdf-md.bat"
-        cmd = [str(script)] + args
-    else:
-        script = root / "smart-pdf-md.sh"
-        cmd = ["bash", str(script)] + args
-    assert script.exists(), f"Missing script at {script}"
+    cmd = [sys.executable, "-m", "smart_pdf_md"] + args
     proc_env = os.environ.copy()
+    root = Path(__file__).resolve().parents[1]
+    proc_env["PYTHONPATH"] = str(root / "src") + (
+        os.pathsep + proc_env.get("PYTHONPATH", "") if proc_env.get("PYTHONPATH") else ""
+    )
     if env:
         proc_env.update(env)
     return subprocess.run(cmd, env=proc_env, capture_output=True, text=True)

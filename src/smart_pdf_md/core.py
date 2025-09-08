@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import os
 import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Iterable
 
 try:  # PyMuPDF is optional for build environments
     import fitz  # type: ignore
@@ -13,8 +16,10 @@ except Exception as e:  # pragma: no cover - best effort
 else:
     FITZ_IMPORT_ERROR = None
 
+
 LOWRES = 96
 HIGHRES = 120
+# Configurable globals (overridable via set_config)
 MODE = os.environ.get("SMART_PDF_MD_MODE", "auto").lower()
 MOCK = os.environ.get("SMART_PDF_MD_MARKER_MOCK", "0") == "1"
 MOCK_FAIL = os.environ.get("SMART_PDF_MD_MARKER_MOCK_FAIL", "0") == "1"
@@ -25,25 +30,55 @@ MIN_RATIO = float(os.environ.get("SMART_PDF_MD_TEXT_MIN_RATIO", "0.2"))
 MOCK_FAIL_IF_SLICE_GT = int(os.environ.get("SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT", "0"))
 
 
-def log(msg):
+def set_config(
+    *,
+    mode: str | None = None,
+    images: bool | None = None,
+    outdir: str | None = None,
+    min_chars: int | None = None,
+    min_ratio: float | None = None,
+    mock: bool | None = None,
+    mock_fail: bool | None = None,
+    mock_fail_if_slice_gt: int | None = None,
+) -> None:
+    global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT
+    if mode is not None:
+        MODE = mode
+    if images is not None:
+        IMAGES = images
+    if outdir is not None:
+        OUTDIR = outdir
+    if min_chars is not None:
+        MIN_CHARS = int(min_chars)
+    if min_ratio is not None:
+        MIN_RATIO = float(min_ratio)
+    if mock is not None:
+        MOCK = mock
+    if mock_fail is not None:
+        MOCK_FAIL = mock_fail
+    if mock_fail_if_slice_gt is not None:
+        MOCK_FAIL_IF_SLICE_GT = int(mock_fail_if_slice_gt)
+
+
+def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def mock_write_markdown(pdf, outdir, note):
-    out = Path(outdir) / (Path(pdf).stem + ".md")
-    prev = out.read_text(encoding="utf-8") if out.exists() else ""
+def mock_write_markdown(pdf: str, outdir: str | Path, note: str) -> int:
+    out_path = Path(outdir) / (Path(pdf).stem + ".md")
+    prev = out_path.read_text(encoding="utf-8") if out_path.exists() else ""
     text = f"# MOCK MARKER OUTPUT\n{note}\nSource: {pdf}\n"
-    out.write_text(prev + ("\n\n" if prev else "") + text, encoding="utf-8")
+    out_path.write_text(prev + ("\n\n" if prev else "") + text, encoding="utf-8")
     return 0
 
 
-def which_marker_single():
+def which_marker_single() -> list[str]:
     p = shutil.which("marker_single")
     if p:
         return [p]
     if getattr(sys, "frozen", False):
         env = os.environ.get("SMART_PDF_MD_PYTHON")
-        candidates = [env] if env else []
+        candidates: list[str | None] = [env] if env else []
         base = getattr(sys, "_base_executable", None)
         if base and Path(base).exists():
             candidates.append(base)
@@ -52,8 +87,8 @@ def which_marker_single():
             shutil.which("python3"),
             shutil.which("python"),
             shutil.which("py"),
-            exe.with_name("python"),
-            exe.with_name("python3"),
+            str(exe.with_name("python")),
+            str(exe.with_name("python3")),
         ]
         for c in candidates:
             if c and Path(c).exists():
@@ -62,18 +97,24 @@ def which_marker_single():
     return [sys.executable, "-m", "marker.scripts.convert_single"]
 
 
-def try_open(pdf):
+def try_open(pdf: str):  # type: ignore[override]
     if not fitz:
         log(f"[WARN ] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
         return None
     try:
         return fitz.open(pdf)
-    except Exception as e:
+    except Exception as e:  # pragma: no cover - environment-specific
         log(f"[WARN ] PyMuPDF cannot open: {e!r}")
         return None
 
 
-def is_textual(pdf, min_chars_per_page=MIN_CHARS, min_ratio=MIN_RATIO):
+def is_textual(
+    pdf: str, min_chars_per_page: int | None = None, min_ratio: float | None = None
+) -> bool:
+    if min_chars_per_page is None:
+        min_chars_per_page = MIN_CHARS
+    if min_ratio is None:
+        min_ratio = MIN_RATIO
     doc = try_open(pdf)
     if not doc:
         return False
@@ -82,7 +123,7 @@ def is_textual(pdf, min_chars_per_page=MIN_CHARS, min_ratio=MIN_RATIO):
         if total == 0:
             return False
         text_pages = 0
-        for page in doc:
+        for page in doc:  # type: ignore[assignment]
             t = page.get_text("text")
             if t and len("".join(t.split())) >= min_chars_per_page:
                 text_pages += 1
@@ -91,7 +132,7 @@ def is_textual(pdf, min_chars_per_page=MIN_CHARS, min_ratio=MIN_RATIO):
         doc.close()
 
 
-def convert_text(pdf, outdir):
+def convert_text(pdf: str, outdir: str | Path) -> int:
     if not fitz:
         log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}")
         return 1
@@ -109,7 +150,7 @@ def convert_text(pdf, outdir):
     return 0
 
 
-def marker_single_pass(pdf, outdir):
+def marker_single_pass(pdf: str, outdir: str | Path) -> int:
     if MOCK:
         if MOCK_FAIL:
             return 1
@@ -129,10 +170,10 @@ def marker_single_pass(pdf, outdir):
         str(HIGHRES),
     ]
     log(f"[RUN  ] {' '.join(cmd)}")
-    return subprocess.run(cmd).returncode
+    return subprocess.run(cmd).returncode  # noqa: S603
 
 
-def marker_slice(pdf, outdir, start, end):
+def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
     if MOCK:
         if MOCK_FAIL or (MOCK_FAIL_IF_SLICE_GT and (end - start + 1) > MOCK_FAIL_IF_SLICE_GT):
             return 1
@@ -152,10 +193,10 @@ def marker_slice(pdf, outdir, start, end):
         str(HIGHRES),
     ]
     log(f"[RUN  ] {' '.join(cmd)}")
-    return subprocess.run(cmd).returncode
+    return subprocess.run(cmd).returncode  # noqa: S603
 
 
-def marker_convert(pdf, outdir, slice_pages):
+def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
     doc = try_open(pdf)
     if not doc:
         rc = marker_single_pass(pdf, outdir)
@@ -186,8 +227,19 @@ def marker_convert(pdf, outdir, slice_pages):
     return 0
 
 
-def process_one(pdf, idx, total, slice_pages):
-    pdf = Path(pdf)
+def iter_input_files(inp: Path) -> Iterable[Path]:
+    if inp.exists() and inp.is_dir():
+        files = sorted(p for p in inp.rglob("*.pdf"))
+        log(f"[scan ] folder: {inp}  files={len(files)}")
+        return files
+    if inp.exists():
+        log(f"[scan ] single file: {inp}")
+        return [inp]
+    log(f"[ERROR] input not found: {inp}")
+    return []
+
+
+def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
     outdir = Path(OUTDIR) if OUTDIR else pdf.parent
     outdir.mkdir(parents=True, exist_ok=True)
     log("=" * 64)
@@ -204,42 +256,6 @@ def process_one(pdf, idx, total, slice_pages):
             return convert_text(str(pdf), str(outdir))
         log("[path ] NON-TEXTUAL -> marker_single")
         return marker_convert(str(pdf), str(outdir), slice_pages)
-    except Exception as e:
+    except Exception as e:  # pragma: no cover - safety
         log(f"[FALL ] unhandled error: {e!r}")
         return 9
-
-
-def main():
-    if len(sys.argv) < 3:
-        log("[USAGE] smart_pdf_md_driver.py INPUT SLICE")
-        sys.exit(2)
-    inp = Path(sys.argv[1])
-    slice_pages = int(sys.argv[2])
-    if inp.exists() and inp.is_dir():
-        files = sorted([p for p in inp.rglob("*.pdf")])
-        log(f"[scan ] folder: {inp}  files={len(files)}")
-    elif inp.exists():
-        files = [inp]
-        log(f"[scan ] single file: {inp}")
-    else:
-        log(f"[ERROR] input not found: {inp}")
-        sys.exit(1)
-    t0 = time.perf_counter()
-    fails = 0
-    exit_code = 0
-    for i, f in enumerate(files, 1):
-        try:
-            rc = process_one(f, i, len(files), slice_pages)
-        except Exception as e:
-            log(f"[CRASH] {f}: {e!r}")
-            rc = 10
-        if rc != 0:
-            fails += 1
-            if exit_code == 0:
-                exit_code = rc
-    log(f"[DONE ] total={len(files)} failures={fails} elapsed={time.perf_counter() - t0:.2f}s")
-    sys.exit(exit_code)
-
-
-if __name__ == "__main__":
-    main()
