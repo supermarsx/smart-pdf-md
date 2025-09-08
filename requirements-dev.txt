@@ -1,9 +1,11 @@
+## Generated from requirements-dev.in / requirements.in (pip-tools optional)
+-r requirements.txt
 coverage
 genbadge[coverage]
 pytest
 pytest-cov
 pymupdf
-pyyaml
 ruff
 build
 twine
+pip-tools

@@ -1,0 +1,10 @@
+-r requirements.in
+coverage
+genbadge[coverage]
+pytest
+pytest-cov
+pymupdf
+ruff
+build
+twine
+pip-tools
