@@ -55,21 +55,16 @@ jobs:
           python -m ruff format --check .
 
   test:
-    name: Test (${{ matrix.os }} / py${{ matrix.python }})
+    name: Test (ubuntu-latest / py3.11)
     needs: format
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        python: ['3.11']
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: requirements-dev.txt
       - name: Install test deps
@@ -107,7 +102,7 @@ jobs:
           python -m coverage html -i -d coverage_html
           python -m coverage report -m | tee coverage.txt
       - name: Generate and commit coverage badge (main, ubuntu, py3.11)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
         run: |
           set -e
           python -m genbadge coverage -i coverage.xml -o badges/coverage.svg
@@ -136,7 +131,7 @@ jobs:
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.os }}-py${{ matrix.python }}
+          name: coverage-ubuntu-py3.11
           path: |
             coverage.xml
             coverage.pytest.xml
