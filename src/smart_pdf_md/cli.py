@@ -24,6 +24,21 @@ def build_parser() -> argparse.ArgumentParser:
         dest="config",
         help="Path to a config file (.toml/.yaml/.yml/.json)",
     )
+    # Torch/Marker environment convenience flags
+    p.add_argument("-T", "--torch-device", dest="torch_device", help="TORCH_DEVICE value")
+    p.add_argument("-O", "--ocr-engine", dest="ocr_engine", help="OCR_ENGINE value")
+    p.add_argument(
+        "-P",
+        "--pytorch-alloc-conf",
+        dest="pytorch_alloc_conf",
+        help="PYTORCH_CUDA_ALLOC_CONF value",
+    )
+    p.add_argument(
+        "-G",
+        "--cuda-visible-devices",
+        dest="cuda_visible_devices",
+        help="CUDA_VISIBLE_DEVICES value",
+    )
     p.add_argument(
         "-E",
         "--env",
@@ -89,6 +104,26 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             k, v = item.split("=", 1)
             _os.environ[k] = v
+
+    # Apply convenience env flags (CLI overrides config)
+    # Accept config keys: torch_device, ocr_engine, pytorch_cuda_alloc_conf, cuda_visible_devices
+    import os as _os
+    torch_device = ns.torch_device if ns.torch_device else cfg.get("torch_device")
+    if torch_device is not None:
+        _os.environ["TORCH_DEVICE"] = str(torch_device)
+    ocr_engine = ns.ocr_engine if ns.ocr_engine else cfg.get("ocr_engine")
+    if ocr_engine is not None:
+        _os.environ["OCR_ENGINE"] = str(ocr_engine)
+    pa_conf = (
+        ns.pytorch_alloc_conf if ns.pytorch_alloc_conf else cfg.get("pytorch_cuda_alloc_conf")
+    )
+    if pa_conf is not None:
+        _os.environ["PYTORCH_CUDA_ALLOC_CONF"] = str(pa_conf)
+    cuda_devices = (
+        ns.cuda_visible_devices if ns.cuda_visible_devices else cfg.get("cuda_visible_devices")
+    )
+    if cuda_devices is not None:
+        _os.environ["CUDA_VISIBLE_DEVICES"] = str(cuda_devices)
 
     # Resolve input and slice from CLI or config
     inp_val = ns.input if ns.input is not None else cfg.get("input")
