@@ -1,0 +1,35 @@
+# Example configuration for smart-pdf-md (copy to config.toml and edit)
+
+# Required when not providing on CLI
+input = "./docs"              # path to a .pdf or a folder to scan recursively
+slice = 40                     # max pages per marker slice (backoff halves on errors)
+
+# Routing and output
+mode = "auto"                  # one of: auto | fast | marker
+outdir = "out"                 # write .md files into this directory (created if missing)
+images = false                 # enable image extraction in marker path when true
+
+# Heuristic for auto mode
+min_chars = 100                # per-page char threshold to treat page as textual
+min_ratio = 0.2                # min ratio of textual pages to select fast path
+
+# Logging and execution behavior
+log_level = "INFO"             # DEBUG | INFO | WARNING | ERROR | CRITICAL
+dry_run = false                # when true, only log intended actions (no writes/marker)
+progress = true                # show incremental progress for pages/slices
+
+# Optional: convenience environment values (applied before CLI -E overrides)
+# These mirror common Marker/Torch environment variables.
+torch_device = "cuda"          # sets TORCH_DEVICE (e.g., "cpu" or "cuda")
+ocr_engine = "surya"           # sets OCR_ENGINE
+pytorch_cuda_alloc_conf = "garbage_collection_threshold:0.8,max_split_size_mb:64"
+cuda_visible_devices = "0"     # sets CUDA_VISIBLE_DEVICES
+
+# Arbitrary environment variables can also be provided here. Keys are case-sensitive
+# and preserved as-is when exported.
+[env]
+TORCH_DEVICE = "cuda"
+OCR_ENGINE = "surya"
+# PYTORCH_CUDA_ALLOC_CONF = "garbage_collection_threshold:0.8,max_split_size_mb:64"
+# CUDA_VISIBLE_DEVICES = "0"
+
