@@ -183,11 +183,6 @@ jobs:
           SMART_PDF_MD_MARKER_MOCK: "1"
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import fitz
-          p = Path('smoke.pdf')
-          doc = fitz.open(); doc.new_page(); doc.save(p); doc.close()
-          PY
+          : > smoke.pdf
           "$BIN" smoke.pdf 5
           test -f smoke.md
