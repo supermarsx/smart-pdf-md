@@ -349,4 +349,31 @@ python smart-pdf-md.py . 40 -m marker -M -o out -i
   - macOS: x86_64 (macos-13), ARM64 (macos-14)
   - Windows: x86_64 (windows-latest)
 
+## Dependencies & pip-tools
+
+This repo uses split requirements and optionally supports pip-tools for pinning.
+
+- Runtime (base):
+  - `requirements.in` → source of unpinned base deps
+  - `requirements.txt` → compiled from `requirements.in`
+
+- Development:
+  - `requirements-dev.in` → source of unpinned dev deps (includes `-r requirements.in`)
+  - `requirements-dev.txt` → compiled from `requirements-dev.in`
+
+Compile with pip-tools (optional):
+
+```
+pip install pip-tools
+pip-compile requirements.in -o requirements.txt
+pip-compile requirements-dev.in -o requirements-dev.txt
+```
+
+Install for development:
+
+```
+python -m pip install -r requirements-dev.txt
+python -m pip install -e .
+```
+
 
