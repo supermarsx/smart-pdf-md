@@ -35,6 +35,8 @@ OUTDIR = os.environ.get("SMART_PDF_MD_OUTPUT_DIR")
 MIN_CHARS = int(os.environ.get("SMART_PDF_MD_TEXT_MIN_CHARS", "100"))
 MIN_RATIO = float(os.environ.get("SMART_PDF_MD_TEXT_MIN_RATIO", "0.2"))
 MOCK_FAIL_IF_SLICE_GT = int(os.environ.get("SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT", "0"))
+DRY_RUN = os.environ.get("SMART_PDF_MD_DRY_RUN", "0") == "1"
+PROGRESS = os.environ.get("SMART_PDF_MD_PROGRESS", "0") == "1"
 _LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 _LOG_LEVEL_NAME = os.environ.get("SMART_PDF_MD_LOG_LEVEL", "INFO").upper()
 LOG_LEVEL = _LEVELS.get(_LOG_LEVEL_NAME, 20)
@@ -51,12 +53,14 @@ def set_config(
     mock_fail: bool | None = None,
     mock_fail_if_slice_gt: int | None = None,
     log_level: str | None = None,
+    dry_run: bool | None = None,
+    progress: bool | None = None,
 ) -> None:
     """Override runtime configuration values in memory.
 
     Parameters mirror environment variables used by the CLI and legacy scripts.
     """
-    global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT, LOG_LEVEL
+    global MODE, IMAGES, OUTDIR, MIN_CHARS, MIN_RATIO, MOCK, MOCK_FAIL, MOCK_FAIL_IF_SLICE_GT, LOG_LEVEL, DRY_RUN, PROGRESS
     if mode is not None:
         MODE = mode
     if images is not None:
@@ -77,6 +81,10 @@ def set_config(
         lvl = _LEVELS.get(str(log_level).upper())
         if lvl is not None:
             LOG_LEVEL = lvl
+    if dry_run is not None:
+        DRY_RUN = bool(dry_run)
+    if progress is not None:
+        PROGRESS = bool(progress)
 
 
 def log(msg: str, level: str = "INFO") -> None:
@@ -163,6 +171,10 @@ def is_textual(
 
 def convert_text(pdf: str, outdir: str | Path) -> int:
     """Extract plain text from each page using PyMuPDF and write Markdown."""
+    if DRY_RUN:
+        out = Path(outdir) / (Path(pdf).stem + ".md")
+        log(f"[DRY  ] would write text to {out}")
+        return 0
     if not fitz:
         log(f"[ERROR] PyMuPDF not installed: {FITZ_IMPORT_ERROR!r}", level="ERROR")
         return 1
@@ -171,7 +183,16 @@ def convert_text(pdf: str, outdir: str | Path) -> int:
     if not doc:
         return 1
     try:
-        parts = [p.get_text("text") for p in doc]
+        total = len(doc)
+        parts: list[str] = []
+        last_pct = -1
+        for idx, p in enumerate(doc, 1):  # type: ignore[assignment]
+            parts.append(p.get_text("text"))
+            if PROGRESS and total > 0:
+                pct = int((idx * 100) / total)
+                if pct // 5 != last_pct // 5:  # report every ~5%
+                    log(f"[PROG ] text {idx}/{total} pages ({pct}%)")
+                    last_pct = pct
     finally:
         doc.close()
     out = Path(outdir) / (Path(pdf).stem + ".md")
@@ -182,6 +203,9 @@ def convert_text(pdf: str, outdir: str | Path) -> int:
 
 def marker_single_pass(pdf: str, outdir: str | Path) -> int:
     """Execute marker once for all pages, or mock when enabled."""
+    if DRY_RUN:
+        log(f"[DRY  ] would run marker_single on {pdf} -> {outdir}")
+        return 0
     if MOCK:
         if MOCK_FAIL:
             return 1
@@ -206,6 +230,9 @@ def marker_single_pass(pdf: str, outdir: str | Path) -> int:
 
 def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
     """Execute marker for a page slice (inclusive indices), or mock when enabled."""
+    if DRY_RUN:
+        log(f"[DRY  ] would run marker slice {start}-{end} for {pdf} -> {outdir}")
+        return 0
     if MOCK:
         if MOCK_FAIL or (MOCK_FAIL_IF_SLICE_GT and (end - start + 1) > MOCK_FAIL_IF_SLICE_GT):
             return 1
@@ -230,6 +257,9 @@ def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
 
 def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
     """Convert using slice-based backoff; falls back to single-pass on open failure."""
+    if DRY_RUN:
+        log(f"[DRY  ] would run marker convert (slice={slice_pages}) for {pdf} -> {outdir}")
+        return 0
     doc = try_open(pdf)
     if not doc:
         rc = marker_single_pass(pdf, outdir)
@@ -243,6 +273,7 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
     start = 0
     cur = int(slice_pages)
     log(f"[MRK_S] total_pages={total} slice={cur} dpi={LOWRES}/{HIGHRES}")
+    done = 0
     while start < total:
         end = min(start + cur - 1, total - 1)
         t0 = time.perf_counter()
@@ -255,7 +286,12 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
             cur = max(5, cur // 2)
             log(f"[WARN ] retry with slice={cur}", level="WARNING")
             continue
-        log(f"[OK   ] pages {start}-{end} in {dt:.2f}s")
+        done += (end - start + 1)
+        if PROGRESS and total > 0:
+            pct = int((done * 100) / total)
+            log(f"[PROG ] slice {start}-{end} ok; {done}/{total} pages ({pct}%) in {dt:.2f}s")
+        else:
+            log(f"[OK   ] pages {start}-{end} in {dt:.2f}s")
         start = end + 1
     return 0
 
@@ -279,6 +315,14 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
     outdir.mkdir(parents=True, exist_ok=True)
     log("=" * 64)
     log(f"[file ] ({idx}/{total}) {pdf}")
+    if DRY_RUN:
+        if MODE == "fast":
+            log("[DRY  ] mode=fast -> would use PyMuPDF fast path")
+        elif MODE == "marker":
+            log("[DRY  ] mode=marker -> would use Marker path")
+        else:
+            log("[DRY  ] mode=auto -> would route based on heuristics (not evaluated in dry-run)")
+        return 0
     try:
         if MODE == "fast":
             log("[path ] FORCED FAST -> PyMuPDF")

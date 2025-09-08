@@ -11,6 +11,7 @@ from pathlib import Path
 import argparse
 
 from .core import iter_input_files, process_one, log, set_config
+from . import __version__
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,6 +49,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
     p.add_argument("-o", "--out", dest="outdir", help="Output directory")
+    p.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"smart-pdf-md {__version__}",
+        help="Show version and exit",
+    )
     g = p.add_mutually_exclusive_group()
     g.add_argument("-i", "--images", dest="images", action="store_true", help="Enable images")
     g.add_argument(
@@ -70,6 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Standard logging level threshold",
+    )
+    p.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        help="Log actions only; do not write outputs or run Marker",
+    )
+    p.add_argument(
+        "-p",
+        "--progress",
+        action="store_true",
+        help="Show incremental progress (pages, slices) while processing",
     )
     return p
 
@@ -152,6 +172,8 @@ def main(argv: list[str] | None = None) -> int:
             True if ns.mock_fail else bool(cfg.get("mock_fail")) if cfg.get("mock_fail") is not None else None
         ),
         log_level=(ns.log_level if ns.log_level else str(cfg.get("log_level")).upper() if cfg.get("log_level") else None),
+        dry_run=(True if ns.dry_run else bool(cfg.get("dry_run")) if cfg.get("dry_run") is not None else None),
+        progress=(True if ns.progress else bool(cfg.get("progress")) if cfg.get("progress") is not None else None),
     )
 
     files = list(iter_input_files(inp))

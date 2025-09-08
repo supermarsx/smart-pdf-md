@@ -338,6 +338,7 @@ Example
 python smart-pdf-md.py . 40 -m marker -M -o out -i
 `
 - `-L, --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}`: logging threshold
+- `-V, --version`: print version and exit
 
 ## Build & Test Matrix
 
@@ -347,4 +348,5 @@ python smart-pdf-md.py . 40 -m marker -M -o out -i
   - Linux: x86_64 (ubuntu-latest), ARM64 (ubuntu-22.04-arm64)
   - macOS: x86_64 (macos-13), ARM64 (macos-14)
   - Windows: x86_64 (windows-latest)
+
 
