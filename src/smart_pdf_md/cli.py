@@ -24,6 +24,13 @@ def build_parser() -> argparse.ArgumentParser:
         dest="config",
         help="Path to a config file (.toml/.yaml/.yml/.json)",
     )
+    p.add_argument(
+        "-E",
+        "--env",
+        action="append",
+        metavar="KEY=VALUE",
+        help="Set environment variable(s); can be repeated",
+    )
     p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
     p.add_argument("-o", "--out", dest="outdir", help="Output directory")
     g = p.add_mutually_exclusive_group()
@@ -66,6 +73,22 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:  # pragma: no cover - I/O/parsing
             log(f"[ERROR] config load failed: {e!r}", level="ERROR")
             return 2
+
+    # Apply environment variables from config first, then CLI overrides
+    if isinstance(cfg.get("env"), dict):
+        import os as _os
+
+        for k, v in (cfg["env"].items()):  # type: ignore[assignment]
+            _os.environ[str(k)] = str(v)
+    if ns.env:
+        import os as _os
+
+        for item in ns.env:
+            if "=" not in item:
+                log(f"[WARN ] ignoring invalid --env entry: {item}", level="WARNING")
+                continue
+            k, v = item.split("=", 1)
+            _os.environ[k] = v
 
     # Resolve input and slice from CLI or config
     inp_val = ns.input if ns.input is not None else cfg.get("input")

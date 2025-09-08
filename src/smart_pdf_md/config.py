@@ -15,12 +15,16 @@ def _norm_key(key: str) -> str:
     return key.replace("-", "_").lower()
 
 
-def _normalize(d: dict[str, Any]) -> dict[str, Any]:
+def _normalize(d: dict[str, Any], *, parent_is_env: bool = False) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for k, v in d.items():
-        nk = _norm_key(str(k))
+        if parent_is_env:
+            nk = str(k)
+        else:
+            nk = _norm_key(str(k))
         if isinstance(v, dict):
-            out[nk] = _normalize(v)
+            # Preserve original key casing for env mapping values
+            out[nk] = _normalize(v, parent_is_env=(nk == "env"))
         else:
             out[nk] = v
     return out
