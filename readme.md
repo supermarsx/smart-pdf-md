@@ -171,8 +171,24 @@ Per-category engine overrides (auto mode)
 
 ## Configuration
 
-- See config.toml.example and the “Config File” section for TOML/YAML/JSON examples.
-- Torch/Marker convenience flags map to envs: -T/--torch-device, -O/--ocr-engine, -P/--pytorch-alloc-conf, -G/--cuda-visible-devices.## Python CLI
+- See config.toml.example and the "Config File" section for TOML/YAML/JSON examples.
+- Torch/Marker convenience flags map to envs: -T/--torch-device, -O/--ocr-engine, -P/--pytorch-alloc-conf, -G/--cuda-visible-devices.
+
+### PyTorch CUDA allocator (PYTORCH_CUDA_ALLOC_CONF)
+
+The `PYTORCH_CUDA_ALLOC_CONF` environment variable configures PyTorch’s CUDA memory allocator.
+It accepts comma-separated `key:value` entries. Common options include:
+
+- heuristic: Enables heuristic-based selection of allocation strategies.
+- nmalloc: Sets the number of allocation attempts before reporting OOM.
+- caching_allocator: Enables the caching allocator to reuse freed blocks.
+- pooled: Activates pooled allocation using fixed-size blocks to reduce fragmentation.
+
+Examples
+- `PYTORCH_CUDA_ALLOC_CONF=caching_allocator:1,pooled:1`
+- `PYTORCH_CUDA_ALLOC_CONF=heuristic:1,nmalloc:3`
+
+## Python CLI
 
 Run without installing (from repo root):
 
@@ -212,6 +228,7 @@ python smart-pdf-md.py INPUT SLICE [options]
 | `-w`, `--no-warn-unknown-env` | — | — | off | Suppress warnings for unknown env keys |
 | `-T`, `--torch-device` | - | value | - | Set `TORCH_DEVICE` (e.g., `cpu`, `cuda`, `cuda:0`, `mps`, `auto`) |
 | `-O`, `--ocr-engine` | - | value | - | Set `OCR_ENGINE` (`None` or `surya`) |
+| `-P`, `--pytorch-alloc-conf` | - | k:v pairs | - | Set `PYTORCH_CUDA_ALLOC_CONF` (e.g., `caching_allocator:1,pooled:1,nmalloc:3,heuristic:1`) |
 | `-P`, `--pytorch-alloc-conf` | — | value | — | Set `PYTORCH_CUDA_ALLOC_CONF` |
 | `-G`, `--cuda-visible-devices` | — | value | — | Set `CUDA_VISIBLE_DEVICES` |
 | `-t`, `--timeout` | — | int | — | Marker subprocess timeout (seconds) |

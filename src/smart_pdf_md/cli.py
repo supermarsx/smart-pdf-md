@@ -76,7 +76,10 @@ def build_parser() -> argparse.ArgumentParser:
         "-P",
         "--pytorch-alloc-conf",
         dest="pytorch_alloc_conf",
-        help="PYTORCH_CUDA_ALLOC_CONF value",
+        help=(
+            "Set PYTORCH_CUDA_ALLOC_CONF (comma-separated k:v pairs), e.g. "
+            "'caching_allocator:1,pooled:1,nmalloc:3,heuristic:1'"
+        ),
     )
     p.add_argument(
         "-G",
