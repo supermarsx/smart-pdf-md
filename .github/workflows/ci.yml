@@ -458,7 +458,9 @@ jobs:
           python -m pip install pymupdf
           python -m pip install -e .
       - name: Run OCRmyPDF test
-        run: |\n          python -m pytest -q tests/test_engines_optional.py::test_ocrmypdf_engine_if_available
+        run: |
+          python -m pytest -q tests/test_engines_optional.py::test_ocrmypdf_engine_if_available
+
 
 
 
