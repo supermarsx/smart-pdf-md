@@ -725,6 +725,76 @@ def convert_via_grobid(pdf: str, outdir: str | Path) -> int:
     return 0
 
 
+def convert_via_pdfx(pdf: str, outdir: str | Path) -> int:
+    try:
+        import pdfx
+    except Exception:
+        log("[ERROR] python package 'pdfx' not installed", level="ERROR")
+        return 4
+    try:
+        px = pdfx.PDFx(pdf)
+        refs: dict[str, list[str]] = {}
+        try:
+            refs = px.get_references() or {}
+        except Exception:
+            refs = {}
+        parts: list[str] = []
+        if refs:
+            parts.append(f"# References extracted from {Path(pdf).name}\n")
+            for k in sorted(refs.keys()):
+                vals = refs.get(k) or []
+                if not vals:
+                    continue
+                parts.append(f"\n## {k}\n")
+                for v in vals:
+                    parts.append(f"- {v}\n")
+        if not parts:
+            # Fallback to pdfminer text extraction when no refs gathered
+            return convert_via_pdfminer(pdf, outdir)
+        out = Path(outdir) / (Path(pdf).stem + ".md")
+        out.write_text("".join(parts), encoding="utf-8")
+        log(f"[OK   ] pdfx {pdf} -> {out}")
+        return 0
+    except Exception as e:
+        log(f"[ERROR] pdfx failed: {e!r}", level="ERROR")
+        return 4
+
+
+def convert_via_ghostscript(pdf: str, outdir: str | Path) -> int:
+    exe = _ensure_exec("gs") or _ensure_exec("gswin64c") or _ensure_exec("gswin32c")
+    if not exe:
+        log("[ERROR] ghostscript executable not found (gs/gswin64c)", level="ERROR")
+        return 4
+    # Use txtwrite device to dump plain text to stdout
+    cmd = [
+        exe,
+        "-q",
+        "-dNOPAUSE",
+        "-dBATCH",
+        "-sDEVICE=txtwrite",
+        "-sOutputFile=-",
+        str(pdf),
+    ]
+    log(f"[RUN  ] {' '.join(cmd)}")
+    try:
+        proc = subprocess.run(cmd, capture_output=True)  # noqa: S603
+        if proc.returncode != 0:
+            log(f"[ERROR] ghostscript rc={proc.returncode}", level="ERROR")
+            return 4
+        data = proc.stdout
+        try:
+            text = data.decode("utf-8")
+        except Exception:
+            text = data.decode("latin-1", errors="ignore")
+        out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+        out.write_text(text, encoding="utf-8")
+        log(f"[OK   ] ghostscript {pdf} -> {out}")
+        return 0
+    except Exception as e:
+        log(f"[ERROR] ghostscript failed: {e!r}", level="ERROR")
+        return 4
+
+
 def convert_via_borb(pdf: str, outdir: str | Path) -> int:
     try:
         # Prefer borb text extraction if available
@@ -926,6 +996,10 @@ def _run_engine_by_name(eng: str, pdf: str, outdir: str | Path, slice_pages: int
         return _run_with_tables(pdf, outdir, convert_via_tabula)
     if e in ("grobid",):
         return _run_with_tables(pdf, outdir, convert_via_grobid)
+    if e in ("pdfx",):
+        return _run_with_tables(pdf, outdir, convert_via_pdfx)
+    if e in ("ghostscript", "gs"):
+        return _run_with_tables(pdf, outdir, convert_via_ghostscript)
     if e in ("borb",):
         return _run_with_tables(pdf, outdir, convert_via_borb)
     if e in ("pdfrw",):
