@@ -194,8 +194,8 @@ python smart-pdf-md.py INPUT SLICE [options]
 | `-f`, `--output-format` | — | md, txt | md | Fast path output format (Marker always md) |
 | `-B`, `--tables` | — | — | off | Extract tables to `<stem>.tables.md` via Camelot |
 | `-b`, `--tables-mode` | — | auto, stream, lattice | stream | Camelot mode (auto tries lattice then stream) |
-| `-i`, `--images` | — | — | off | Enable image extraction in Marker path |
-| `-I`, `--no-images` | — | — | off | Disable image extraction in Marker path |
+| `-i`, `--images` | - | - | off | Enable image extraction in Marker path (default: disabled) |
+| `-I`, `--no-images` | - | - | off | Explicitly disable images (default) |
 | `-c`, `--min-chars` | — | int | 100 | Min chars/page to treat as textual |
 | `-r`, `--min-ratio` | — | float | 0.2 | Min ratio of textual pages |
 | `-S`, `--include` | - | fnmatch glob | - | Include pattern(s) on relative paths; use '/' (repeatable) |
@@ -210,8 +210,8 @@ python smart-pdf-md.py INPUT SLICE [options]
 | `-C`, `--config` | — | file | — | Load TOML/YAML/JSON config; CLI overrides config |
 | `-E`, `--env` | — | `KEY=VALUE` | — | Set env var(s) for this run (repeatable) |
 | `-w`, `--no-warn-unknown-env` | — | — | off | Suppress warnings for unknown env keys |
-| `-T`, `--torch-device` | — | value | — | Set `TORCH_DEVICE` (e.g., `cpu`, `cuda`) |
-| `-O`, `--ocr-engine` | — | value | — | Set `OCR_ENGINE` |
+| `-T`, `--torch-device` | - | value | - | Set `TORCH_DEVICE` (e.g., `cpu`, `cuda`, `cuda:0`, `mps`, `auto`) |
+| `-O`, `--ocr-engine` | - | value | - | Set `OCR_ENGINE` (`None` or `surya`) |
 | `-P`, `--pytorch-alloc-conf` | — | value | — | Set `PYTORCH_CUDA_ALLOC_CONF` |
 | `-G`, `--cuda-visible-devices` | — | value | — | Set `CUDA_VISIBLE_DEVICES` |
 | `-t`, `--timeout` | — | int | — | Marker subprocess timeout (seconds) |

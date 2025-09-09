@@ -60,8 +60,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to a config file (.toml/.yaml/.yml/.json)",
     )
     # Torch/Marker environment convenience flags
-    p.add_argument("-T", "--torch-device", dest="torch_device", help="TORCH_DEVICE value")
-    p.add_argument("-O", "--ocr-engine", dest="ocr_engine", help="OCR_ENGINE value")
+    p.add_argument(
+        "-T",
+        "--torch-device",
+        dest="torch_device",
+        help="Set TORCH_DEVICE (e.g., cpu, cuda, cuda:0, mps, auto)",
+    )
+    p.add_argument(
+        "-O",
+        "--ocr-engine",
+        dest="ocr_engine",
+        help="Set OCR_ENGINE (None or surya)",
+    )
     p.add_argument(
         "-P",
         "--pytorch-alloc-conf",
@@ -241,9 +251,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show version and exit",
     )
     g = p.add_mutually_exclusive_group()
-    g.add_argument("-i", "--images", dest="images", action="store_true", help="Enable images")
     g.add_argument(
-        "-I", "--no-images", dest="no_images", action="store_true", help="Disable images"
+        "-i",
+        "--images",
+        dest="images",
+        action="store_true",
+        help="Enable image extraction in Marker path (default: disabled)",
+    )
+    g.add_argument(
+        "-I",
+        "--no-images",
+        dest="no_images",
+        action="store_true",
+        help="Explicitly disable images (default)",
     )
     p.add_argument(
         "-c",
