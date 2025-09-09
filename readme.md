@@ -109,6 +109,35 @@ smart-pdf-md "./reports/2024/survey.pdf" 40
 
 * For each `input.pdf`, the tool writes `input.md` **next to** the PDF (same folder).
 
+### Usage examples
+
+- Convert a single file with smart routing (default):
+  - `smart-pdf-md input.pdf 40`
+
+- Force fast PyMuPDF path (textual PDFs):
+  - `smart-pdf-md input.pdf 40 -m fast`
+
+- Force a specific engine:
+  - Poppler html2md: `smart-pdf-md input.pdf 40 -e poppler`
+  - Layout (PyMuPDF4LLM): `smart-pdf-md input.pdf 40 -e layout`
+  - OCRmyPDF: `smart-pdf-md input.pdf 40 -e ocrmypdf`
+  - Tesseract OCR: `smart-pdf-md input.pdf 40 -e pytesseract`
+  - Ghostscript text: `smart-pdf-md input.pdf 40 -e ghostscript`
+
+- Per‑category overrides in auto mode (keep smart routing):
+  - Textual → layout, Non‑textual → marker: `smart-pdf-md input.pdf 40 --engine-textual layout --engine-nontextual marker`
+  - Or via env: `SMART_PDF_MD_ENGINE_TEXTUAL=layout SMART_PDF_MD_ENGINE_NON_TEXTUAL=marker python -m smart_pdf_md input.pdf 40`
+
+- Extract tables:
+  - Stream mode: `smart-pdf-md input.pdf 40 --tables --tables-mode stream`
+  - Lattice mode: `smart-pdf-md input.pdf 40 --tables --tables-mode lattice`
+
+- Use GROBID (server required):
+  - `GROBID_URL=https://your-grobid:8070 smart-pdf-md input.pdf 40 -e grobid`
+
+- Batch convert a folder (recursive):
+  - `smart-pdf-md ./docs 40`
+
 ### Flags and environment
 
 - Prefer CLI flags listed under “Python CLI” for day‑to‑day use.
