@@ -1,0 +1,24 @@
+# Optional engines and features used by smart-pdf-md
+markdownify
+pdfminer.six
+pdfplumber
+pymupdf4llm
+docling
+camelot-py[cv]
+pandas
+ocrmypdf
+pypdf
+pypdfium2
+pytesseract
+pdf2image
+Pillow
+python-doctr
+unstructured
+pdftotree
+tabula-py
+requests
+borb
+pdfrw
+pdfquery
+easyocr
+kraken
