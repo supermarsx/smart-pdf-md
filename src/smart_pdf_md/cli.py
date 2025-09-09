@@ -85,7 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-G",
         "--cuda-visible-devices",
         dest="cuda_visible_devices",
-        help="CUDA_VISIBLE_DEVICES value",
+        help=("Set CUDA_VISIBLE_DEVICES GPU index list, e.g. '0' or '0,1' or '3'"),
     )
     p.add_argument(
         "-E",

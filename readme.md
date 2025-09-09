@@ -230,7 +230,7 @@ python smart-pdf-md.py INPUT SLICE [options]
 | `-O`, `--ocr-engine` | - | value | - | Set `OCR_ENGINE` (`None` or `surya`) |
 | `-P`, `--pytorch-alloc-conf` | - | k:v pairs | - | Set `PYTORCH_CUDA_ALLOC_CONF` (e.g., `caching_allocator:1,pooled:1,nmalloc:3,heuristic:1`) |
 | `-P`, `--pytorch-alloc-conf` | — | value | — | Set `PYTORCH_CUDA_ALLOC_CONF` |
-| `-G`, `--cuda-visible-devices` | — | value | — | Set `CUDA_VISIBLE_DEVICES` |
+| `-G`, `--cuda-visible-devices` | - | value | - | Set `CUDA_VISIBLE_DEVICES` GPU index list, e.g., `0`, `0,1`, `3` |
 | `-t`, `--timeout` | — | int | — | Marker subprocess timeout (seconds) |
 | `-x`, `--retries` | — | int | — | Retries for Marker subprocess |
 | `-R`, `--resume` | — | — | off | Skip PDFs whose outputs already exist |
