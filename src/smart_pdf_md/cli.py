@@ -46,7 +46,11 @@ def _compute_version() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     """Create and return the CLI argument parser."""
-    p = argparse.ArgumentParser(prog="smart-pdf-md", add_help=True)
+    p = argparse.ArgumentParser(
+        prog="smart-pdf-md",
+        add_help=True,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p.add_argument("input", nargs="?", help="Input PDF file or directory")
     p.add_argument("slice", nargs="?", type=int, help="Slice size for marker path")
     p.add_argument(
@@ -77,7 +81,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="KEY=VALUE",
         help="Set environment variable(s); can be repeated",
     )
-    p.add_argument("-m", "--mode", choices=["auto", "fast", "marker"], help="Processing mode")
+    p.add_argument(
+        "-m",
+        "--mode",
+        choices=["auto", "fast", "marker"],
+        help="Processing mode (default: auto)",
+    )
     p.add_argument(
         "-e",
         "--engine",
@@ -186,18 +195,25 @@ def build_parser() -> argparse.ArgumentParser:
         ],
         help="Engine to use for non-textual PDFs in auto mode",
     )
-    p.add_argument("-o", "--out", dest="outdir", help="Output directory")
+    p.add_argument("-o", "--out", dest="outdir", help="Output directory (default: alongside input)")
     p.add_argument(
         "-f",
         "--output-format",
         choices=["md", "txt"],
-        help="Output format for fast path (marker remains markdown)",
+        help="Output format for fast path (marker remains markdown; default: md)",
     )
     p.add_argument(
         "-B",
         "--tables",
         action="store_true",
-        help="Extract tables to '<stem>.tables.md' using camelot (stream)",
+        help="Extract tables to '<stem>.tables.md' using camelot",
+    )
+    p.add_argument(
+        "-b",
+        "--tables-mode",
+        choices=["auto", "stream", "lattice"],
+        dest="tables_mode",
+        help="Camelot mode when extracting tables (default: stream)",
     )
     p.add_argument(
         "-S",
@@ -228,10 +244,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--min-chars",
         type=int,
         dest="min_chars",
-        help="Min chars per page for fast path",
+        help="Min chars per page for fast path (default: 100)",
     )
     p.add_argument(
-        "-r", "--min-ratio", type=float, dest="min_ratio", help="Min ratio of textual pages"
+        "-r",
+        "--min-ratio",
+        type=float,
+        dest="min_ratio",
+        help="Min ratio of textual pages (default: 0.2)",
     )
     p.add_argument("-M", "--mock", action="store_true", help="Mock marker path")
     p.add_argument("-F", "--mock-fail", action="store_true", help="Force mock marker failure")
@@ -239,7 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-L",
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Standard logging level threshold",
+        help="Standard logging level threshold (default: INFO)",
     )
     p.add_argument(
         "-n",
