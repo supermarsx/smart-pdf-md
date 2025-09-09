@@ -111,10 +111,13 @@ jobs:
       - name: Install test deps
         run: |
           if [ "${{ env.USE_UV }}" = "1" ]; then
+            uv pip install --system -U pip setuptools wheel
+            uv pip install --system numpy
             uv pip install --system -r requirements-dev.txt
             uv pip install --system -e .
           else
-            python -m pip install -U pip
+            python -m pip install -U pip setuptools wheel
+            python -m pip install -U numpy
             python -m pip install -r requirements-dev.txt
             python -m pip install -e .
           fi
@@ -223,17 +226,17 @@ jobs:
           SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL: "1"
         run: |
           if [ "${{ env.USE_UV }}" = "1" ]; then
+            uv pip install --system -U pip setuptools wheel
+            uv pip install --system numpy
             uv pip install --system -r requirements-dev.txt
             uv pip install --system -r requirements-optional.txt
             uv pip install --system -e .
-          else
-            python -m pip install -U pip
+            python -m pip install -r requirements-dev.txt
+            python -m pip install -U pip setuptools wheel
+            python -m pip install -U numpy
             python -m pip install -r requirements-dev.txt
             python -m pip install -r requirements-optional.txt
             python -m pip install -e .
-          fi
-      - name: Run optional engine tests
-        run: |
           python -m pytest -q tests/test_engines_optional.py
 
   build:
