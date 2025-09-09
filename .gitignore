@@ -1,24 +1,40 @@
-
 __pycache__/
-.DS_Store
-.idea/
+*.py[cod]
+*.so
+
+# Virtual envs
+.venv/
+venv/
+
+# Caches and tooling
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.cache/
+
+# Editors/OS
+.idea/
 .vscode/
-{out}
-*.pyc
-*.spec
-# Build artifacts
-# Bytecode and caches
-# Editors
-# OS junk
-# Test artifacts
+.DS_Store
+Thumbs.db
+
+# Packaging/build artifacts
 build/
 dist/
-fast
-marker_single')
-PyMuPDF')
+*.egg-info/
+src/*.egg-info/
+pip-wheel-metadata/
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Local/test artifacts
+temp.part
 smoke.md
 smoke.pdf
-temp.part
-Thumbs.db
+fast
+
+# PyInstaller
+*.spec

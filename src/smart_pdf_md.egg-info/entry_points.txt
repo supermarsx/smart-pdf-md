@@ -1,2 +1,0 @@
-[console_scripts]
-smart-pdf-md = smart_pdf_md.cli:main
