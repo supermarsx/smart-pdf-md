@@ -725,6 +725,135 @@ def convert_via_grobid(pdf: str, outdir: str | Path) -> int:
     return 0
 
 
+def convert_via_borb(pdf: str, outdir: str | Path) -> int:
+    try:
+        # Prefer borb text extraction if available
+        from borb.toolkit.text.simple_text_extraction import SimpleTextExtraction
+        from borb.pdf import PDF
+    except Exception:
+        # Fallback via pypdf engine
+        log("[WARN ] 'borb' not installed; falling back to pypdf", level="WARNING")
+        return convert_via_pypdf(pdf, outdir)
+    try:
+        # borb API: PDF.loads returns Document; using in-memory loader
+        with open(pdf, "rb") as fh:
+            doc = PDF.loads(fh)
+        ste = SimpleTextExtraction()
+        texts: list[str] = []
+        for page in doc.get_pages():
+            try:
+                ste.reset()
+                ste.extract(page)
+                texts.append(ste.get_text())
+            except Exception:
+                texts.append("")
+        out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+        out.write_text("\n\n".join(texts), encoding="utf-8")
+        log(f"[OK   ] borb {pdf} -> {out}")
+        return 0
+    except Exception as e:
+        log(f"[ERROR] borb extraction failed: {e!r}", level="ERROR")
+        return 4
+
+
+def convert_via_pdfrw(pdf: str, outdir: str | Path) -> int:
+    try:
+        import pdfrw  # noqa: F401
+    except Exception:
+        log("[WARN ] 'pdfrw' not installed; falling back to pypdf", level="WARNING")
+        return convert_via_pypdf(pdf, outdir)
+    # pdfrw does not provide robust text extraction; use pypdf as a fallback strategy
+    return convert_via_pypdf(pdf, outdir)
+
+
+def convert_via_pdfquery(pdf: str, outdir: str | Path) -> int:
+    # pdfquery builds on pdfminer; use pdfminer extraction for plain text
+    try:
+        from pdfminer.high_level import extract_text
+    except Exception:
+        log("[ERROR] 'pdfminer.six' not installed for pdfquery engine", level="ERROR")
+        return 4
+    try:
+        text = extract_text(pdf) or ""
+    except Exception as e:
+        log(f"[ERROR] pdfquery/pdfminer failed: {e!r}", level="ERROR")
+        return 4
+    out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+    out.write_text(text, encoding="utf-8")
+    log(f"[OK   ] pdfquery {pdf} -> {out}")
+    return 0
+
+
+def convert_via_easyocr(pdf: str, outdir: str | Path) -> int:
+    try:
+        from pdf2image import convert_from_path
+        from PIL import Image  # noqa: F401
+        import easyocr
+    except Exception:
+        log("[ERROR] packages 'easyocr', 'pdf2image', and 'Pillow' required", level="ERROR")
+        return 4
+    try:
+        images = convert_from_path(pdf)
+    except Exception as e:
+        log(f"[ERROR] pdf2image failed: {e!r}", level="ERROR")
+        return 4
+    reader = None
+    try:
+        reader = easyocr.Reader(["en"], gpu=False)
+    except Exception as e:
+        log(f"[ERROR] easyocr init failed: {e!r}", level="ERROR")
+        return 4
+    lines: list[str] = []
+    for img in images:
+        try:
+            result = reader.readtext(img)
+            for _bbox, text, _conf in result:
+                lines.append(text)
+        except Exception:
+            continue
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text("\n".join(lines), encoding="utf-8")
+    log(f"[OK   ] easyocr {pdf} -> {out}")
+    return 0
+
+
+def convert_via_kraken(pdf: str, outdir: str | Path) -> int:
+    try:
+        from pdf2image import convert_from_path
+        from PIL import Image  # noqa: F401
+    except Exception:
+        log("[ERROR] packages 'pdf2image' and 'Pillow' required for kraken", level="ERROR")
+        return 4
+    exe = _ensure_exec("kraken")
+    if not exe:
+        log("[ERROR] 'kraken' CLI not found in PATH", level="ERROR")
+        return 4
+    import tempfile
+
+    try:
+        images = convert_from_path(pdf)
+    except Exception as e:
+        log(f"[ERROR] pdf2image failed: {e!r}", level="ERROR")
+        return 4
+    texts: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        for i, img in enumerate(images):
+            img_path = Path(td) / f"p{i}.png"
+            txt_path = Path(td) / f"p{i}.txt"
+            try:
+                img.save(img_path)
+                # kraken -i image.png image.txt (default segmentation + recognition)
+                rc = subprocess.run([exe, "-i", str(img_path), str(txt_path)]).returncode  # noqa: S603
+                if rc == 0 and txt_path.exists():
+                    texts.append(txt_path.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                continue
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text("\n\n".join(texts), encoding="utf-8")
+    log(f"[OK   ] kraken {pdf} -> {out}")
+    return 0
+
+
 def _run_with_tables(pdf: str, outdir: str | Path, fn: Any, *, flavor: str | None = None) -> int:
     # Call the provided engine runner and, on success, extract tables when requested.
     rc = int(fn(str(pdf), str(outdir)))
@@ -797,6 +926,16 @@ def _run_engine_by_name(eng: str, pdf: str, outdir: str | Path, slice_pages: int
         return _run_with_tables(pdf, outdir, convert_via_tabula)
     if e in ("grobid",):
         return _run_with_tables(pdf, outdir, convert_via_grobid)
+    if e in ("borb",):
+        return _run_with_tables(pdf, outdir, convert_via_borb)
+    if e in ("pdfrw",):
+        return _run_with_tables(pdf, outdir, convert_via_pdfrw)
+    if e in ("pdfquery",):
+        return _run_with_tables(pdf, outdir, convert_via_pdfquery)
+    if e in ("easyocr",):
+        return _run_with_tables(pdf, outdir, convert_via_easyocr)
+    if e in ("kraken",):
+        return _run_with_tables(pdf, outdir, convert_via_kraken)
     log(f"[ERROR] unknown engine: {eng}", level="ERROR")
     return 9
 

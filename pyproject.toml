@@ -77,6 +77,25 @@ tabula = [
 grobid = [
   "requests",
 ]
+borb = [
+  "borb",
+]
+pdfrw = [
+  "pdfrw",
+]
+pdfquery = [
+  "pdfquery",
+]
+easyocr = [
+  "easyocr",
+  "pdf2image",
+  "Pillow",
+]
+kraken = [
+  "kraken",
+  "pdf2image",
+  "Pillow",
+]
 
 [project.urls]
 Homepage = "https://github.com/supermarsx/smart-pdf-md"
