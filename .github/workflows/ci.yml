@@ -382,8 +382,11 @@ doc.save('sample.pdf'); doc.close()
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Build Docker image
+      
+          docker build -t smart-pdf-md:ci .
+      - name: Run --version
         run: |
+          docker run --rm smart-pdf-md:ci --version
   typecheck:
     name: Type Check (mypy)
     needs: test
@@ -456,3 +459,4 @@ doc.save('sample.pdf'); doc.close()
       - name: Run OCRmyPDF test
         run: |
           python -m pytest -q tests/test_engines_optional.py::test_ocrmypdf_engine_if_available
+
