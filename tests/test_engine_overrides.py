@@ -49,4 +49,3 @@ def test_engine_nontextual_override_marker_with_mock(tmp_path: Path) -> None:
         },
     )
     assert res.returncode == 0, res.stdout + "\n" + res.stderr
-
