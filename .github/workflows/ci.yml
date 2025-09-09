@@ -420,3 +420,39 @@ doc.save('sample.pdf'); doc.close()
           python -m mypy
 
 
+
+  test-ocr-optional:
+    name: Test OCR Optional (ubuntu / ocrmypdf)
+    needs: format
+    if: env.ENABLE_OCR_SMOKE == '1'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements.in
+            requirements-dev.in
+            pyproject.toml
+      - name: Install system dependencies (OCRmyPDF)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends ocrmypdf tesseract-ocr ghostscript
+      - name: Install Python deps (pymupdf + test tools)
+        env:
+          PIP_PREFER_BINARY: "1"
+        run: |
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -U "numpy>=1.26,<3"
+          python -m pip install -r requirements-dev.txt
+          python -m pip install pymupdf
+          python -m pip install -e .
+      - name: Run OCRmyPDF test
+        run: |
+          python -m pytest -q tests/test_engines_optional.py::test_ocrmypdf_engine_if_available
