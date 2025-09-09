@@ -157,7 +157,7 @@ def build_parser() -> argparse.ArgumentParser:
             "ocr",
             "lattice",
         ],
-        help="Engine to use for textual PDFs in auto mode",
+        help="Engine to use for textual PDFs in auto mode (default: pymupdf)",
     )
     p.add_argument(
         "-EN",
@@ -193,7 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
             "ocr",
             "lattice",
         ],
-        help="Engine to use for non-textual PDFs in auto mode",
+        help="Engine to use for non-textual PDFs in auto mode (default: marker)",
     )
     p.add_argument("-o", "--out", dest="outdir", help="Output directory (default: alongside input)")
     p.add_argument(

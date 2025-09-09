@@ -39,6 +39,10 @@ The tool inspects each PDF. If enough pages contain real text, it uses PyMuPDF (
 
 ### Available engines (-e/--engine)
 
+Defaults in auto mode
+- Textual PDFs: `pymupdf` (aka `fast`)
+- Non-textual PDFs: `marker` (marker-pdf; slice backoff with single-pass fallback)
+
 - fast / pymupdf: PyMuPDF plain text → Markdown
 - marker: Marker single-file converter with slice backoff
 - poppler / poppler-html2md / html2md: Poppler pdftohtml → markdownify
@@ -183,9 +187,9 @@ python smart-pdf-md.py INPUT SLICE [options]
 | `INPUT` | — | path | required | PDF file or directory to process |
 | `SLICE` | — | int | required | Max pages per Marker slice (e.g., 40) |
 | `-m`, `--mode` | — | auto, fast, marker | auto | Processing mode/routing |
-| `-e`, `--engine` | — | many | — | Force a specific engine (see “Available engines”) |
-| `-ET`, `--engine-textual` | — | engine | — | Engine for textual PDFs in auto mode |
-| `-EN`, `--engine-nontextual` | — | engine | — | Engine for non-textual PDFs in auto mode |
+| `-e`, `--engine` | - | see list below | - | Force a specific engine (see "Available engines") |
+| `-ET`, `--engine-textual` | - | see list below | pymupdf | Engine for textual PDFs in auto mode |
+| `-EN`, `--engine-nontextual` | - | see list below | marker | Engine for non-textual PDFs in auto mode |
 | `-o`, `--out` | — | dir | alongside input | Output directory |
 | `-f`, `--output-format` | — | md, txt | md | Fast path output format (Marker always md) |
 | `-B`, `--tables` | — | — | off | Extract tables to `<stem>.tables.md` via Camelot |
