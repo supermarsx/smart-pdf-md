@@ -2,8 +2,8 @@
 
 Latest overall test coverage percentage across the repository.
 
-- Coverage: 36%
-- Updated: 2025-09-09 14:43:55Z
+- Coverage: 39%
+- Updated: 2025-09-09 15:02:32Z
 
 Generated from coverage.xml in CI.
 
