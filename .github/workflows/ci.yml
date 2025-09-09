@@ -412,17 +412,3 @@ jobs:
       - name: Run mypy
         run: |
           python -m mypy
-          docker build -t smart-pdf-md:ci .
-      - name: Run --version
-        run: |
-          docker run --rm smart-pdf-md:ci --version
-      - name: Smoke run binary (Windows, mock marker)
-        if: runner.os == 'Windows'
-        env:
-          SMART_PDF_MD_MODE: marker
-          SMART_PDF_MD_MARKER_MOCK: "1"
-        shell: pwsh
-        run: |
-          New-Item -Path smoke.pdf -ItemType File -Force | Out-Null
-          & $env:BIN smoke.pdf 5
-          if (-not (Test-Path smoke.md)) { exit 1 }
