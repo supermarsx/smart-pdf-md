@@ -115,6 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Force a specific conversion engine",
     )
     p.add_argument(
+        "-ET",
         "--engine-textual",
         dest="engine_textual",
         choices=[
@@ -150,6 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Engine to use for textual PDFs in auto mode",
     )
     p.add_argument(
+        "-EN",
         "--engine-nontextual",
         dest="engine_non_textual",
         choices=[
@@ -192,6 +194,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format for fast path (marker remains markdown)",
     )
     p.add_argument(
+        "-B",
         "--tables",
         action="store_true",
         help="Extract tables to '<stem>.tables.md' using camelot (stream)",
@@ -263,9 +266,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set log level to DEBUG (overridden by --log-level)",
     )
     p.add_argument(
-        "--log-json", action="store_true", help="Emit logs as JSON lines (ts, level, message)"
+        "-J",
+        "--log-json",
+        action="store_true",
+        help="Emit logs as JSON lines (ts, level, message)",
     )
-    p.add_argument("--log-file", help="Append logs to a file (1MB simple rotation)")
+    p.add_argument(
+        "-LF",
+        "--log-file",
+        help="Append logs to a file (1MB simple rotation)",
+    )
     p.add_argument(
         "-w",
         "--no-warn-unknown-env",

@@ -176,31 +176,45 @@ Run without installing (from repo root):
 python smart-pdf-md.py INPUT SLICE [options]
 `
 
-Short options
-- -m, --mode {auto,fast,marker}: processing mode
-- -o, --out DIR: output directory
-- --output-format {md,txt}: fast-path output extension (marker remains markdown)
-- -i, --images / -I, --no-images: toggle image extraction for Marker path
-- -e, --engine {auto,fast,marker,poppler,pdfminer,pdfplumber,layout,docling,ocr,lattice,pypdf,pypdfium2,pytesseract,unstructured,pdftotree,tabula,grobid,borb,pdfrw,pdfquery,easyocr,kraken,ghostscript,pdfx}
-- --engine-textual <engine>
-- --engine-nontextual <engine>
-- --tables: extract tables to `<stem>.tables.md` via Camelot
-- --tables-mode {auto,stream,lattice}: Camelot mode (auto tries lattice then stream)
-- -c, --min-chars INT: min chars/page to treat as textual
-- -r, --min-ratio FLOAT: min ratio of textual pages
-- -S, --include GLOB: include pattern(s) when scanning a folder (repeatable)
-- -X, --exclude GLOB: exclude pattern(s) when scanning a folder (repeatable)
-- -p, --progress: show incremental progress (pages/slices)
-- -n, --dry-run: log intended actions; do not write or run Marker
-- -L, --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}: logging threshold
-- -q/--quiet and -v/--verbose: set ERROR/DEBUG respectively (overridden by -L)
-- --log-json: emit JSON logs; --log-file PATH: also append logs to file
-- -C, --config FILE: load TOML/YAML/JSON config; CLI overrides config values
-- -E, --env KEY=VALUE: set env var(s) for this run (repeatable)
-- --no-warn-unknown-env: suppress warnings for unknown env keys
-- -T, --torch-device VAL; -O, --ocr-engine VAL
-- -P, --pytorch-alloc-conf VAL; -G, --cuda-visible-devices VAL
-- -V, --version: print version (includes git SHA/date in a git checkout)
+### CLI Options
+
+| Option | Alt | Values | Description |
+|---|---|---|---|
+| `INPUT` | — | path | PDF file or directory to process |
+| `SLICE` | — | int | Max pages per Marker slice (e.g., 40) |
+| `-m`, `--mode` | — | auto, fast, marker | Processing mode/routing |
+| `-e`, `--engine` | — | many | Force a specific engine (see “Available engines”) |
+| `-ET`, `--engine-textual` | — | engine | Engine for textual PDFs in auto mode |
+| `-EN`, `--engine-nontextual` | — | engine | Engine for non-textual PDFs in auto mode |
+| `-o`, `--out` | — | dir | Output directory |
+| `-f`, `--output-format` | — | md, txt | Fast path output format (Marker always md) |
+| `-B`, `--tables` | — | — | Extract tables to `<stem>.tables.md` via Camelot (stream) |
+| `--tables-mode` | — | auto, stream, lattice | Camelot mode (auto tries lattice then stream) |
+| `-i`, `--images` | — | — | Enable image extraction in Marker path |
+| `-I`, `--no-images` | — | — | Disable image extraction in Marker path |
+| `-c`, `--min-chars` | — | int | Min chars/page to treat as textual |
+| `-r`, `--min-ratio` | — | float | Min ratio of textual pages |
+| `-S`, `--include` | — | glob | Include pattern(s) when scanning folders (repeatable) |
+| `-X`, `--exclude` | — | glob | Exclude pattern(s) when scanning folders (repeatable) |
+| `-p`, `--progress` | — | — | Show incremental progress (pages/slices) |
+| `-n`, `--dry-run` | — | — | Log actions only; do not write outputs or run Marker |
+| `-L`, `--log-level` | — | DEBUG, INFO, WARNING, ERROR, CRITICAL | Logging threshold |
+| `-q`, `--quiet` | — | — | Set log level to ERROR (overrides mode) |
+| `-v`, `--verbose` | — | — | Set log level to DEBUG (overrides mode) |
+| `-J`, `--log-json` | — | — | Emit JSON logs (ts, level, message) |
+| `-LF`, `--log-file` | — | path | Append logs to a file (1MB simple rotation) |
+| `-C`, `--config` | — | file | Load TOML/YAML/JSON config; CLI overrides config |
+| `-E`, `--env` | — | `KEY=VALUE` | Set env var(s) for this run (repeatable) |
+| `-w`, `--no-warn-unknown-env` | — | — | Suppress warnings for unknown env keys |
+| `-T`, `--torch-device` | — | value | Set `TORCH_DEVICE` (e.g., `cpu`, `cuda`) |
+| `-O`, `--ocr-engine` | — | value | Set `OCR_ENGINE` |
+| `-P`, `--pytorch-alloc-conf` | — | value | Set `PYTORCH_CUDA_ALLOC_CONF` |
+| `-G`, `--cuda-visible-devices` | — | value | Set `CUDA_VISIBLE_DEVICES` |
+| `-t`, `--timeout` | — | int | Marker subprocess timeout (seconds) |
+| `-x`, `--retries` | — | int | Retries for Marker subprocess |
+| `-R`, `--resume` | — | — | Skip PDFs whose outputs already exist |
+| `-D`, `--check-deps` | `-y`, `--yes` | — | Check/install optional deps; `-y` assumes yes |
+| `-V`, `--version` | — | — | Show version and exit |
 
 Example
 `
