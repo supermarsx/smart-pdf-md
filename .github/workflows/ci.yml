@@ -219,6 +219,8 @@ jobs:
         if: env.USE_UV == '1'
         uses: astral-sh/setup-uv@v5
       - name: Install dev + optional deps
+        env:
+          SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL: "1"
         run: |
           if [ "${{ env.USE_UV }}" = "1" ]; then
             uv pip install --system -r requirements-dev.txt
