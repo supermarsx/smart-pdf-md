@@ -39,15 +39,30 @@ The tool inspects each PDF. If enough pages contain real text, it uses PyMuPDF (
 
 ### Available engines (-e/--engine)
 
-- `fast` / `pymupdf`: PyMuPDF plain text to Markdown
-- `marker`: Marker single-file converter with slice backoff
-- `poppler` / `poppler-html2md` / `html2md`: Poppler `pdftohtml` + `markdownify`
-- `pdfminer`: `pdfminer.six` high-level text extraction
-- `pdfplumber`: page-wise text via pdfplumber
-- `layout` / `pymupdf4llm`: PyMuPDF4LLM layout-aware Markdown
-- `docling`: IBM Docling Markdown conversion
-- `ocrmypdf` / `ocr`: OCRmyPDF adds a text layer, then fast path
-- `lattice`: fast path plus Camelot table extraction using lattice flavor
+- fast / pymupdf: PyMuPDF plain text → Markdown
+- marker: Marker single-file converter with slice backoff
+- poppler / poppler-html2md / html2md: Poppler pdftohtml → markdownify
+- pdfminer: pdfminer.six high-level text extraction
+- pdfplumber: page-wise text via pdfplumber
+- layout / pymupdf4llm: PyMuPDF4LLM layout-aware Markdown
+- docling: IBM Docling Markdown conversion
+- ocrmypdf / ocr: OCRmyPDF adds text layer, then fast path
+- lattice: fast path + Camelot table extraction (lattice flavor)
+- pypdf: Pure-Python text extraction
+- pypdfium2: PDFium-based text extraction
+- pytesseract: OCR via pdf2image + Pillow + Tesseract
+- doctr: Deep OCR (python-doctr)
+- unstructured: Generic PDF partition to text
+- pdftotree: Layout to HTML → markdownify
+- tabula: Tables via tabula-py (Markdown tables)
+- grobid: Uses a GROBID server; writes TEI and a simple Markdown summary
+- borb: Text via borb SimpleTextExtraction (falls back to pypdf)
+- pdfrw: Fallback to pypdf for text
+- pdfquery: Uses pdfminer for text
+- easyocr: OCR with easyocr (CPU by default)
+- kraken: OCR via the kraken CLI
+- ghostscript / gs: Ghostscript txtwrite text extraction
+- pdfx: Extracts references/links with pdfx; falls back to pdfminer text
 
 > **Note:** Image extraction in the Marker path is **disabled by default**; output focuses on Markdown text.
 
@@ -102,10 +117,17 @@ smart-pdf-md "./reports/2024/survey.pdf" 40
 - Unknown env keys warn by default; suppress with --no-warn-unknown-env or warn_unknown_env=false in config.
 
 Common environment keys (CLI flags are usually better):
-- SMART_PDF_MD_MODE (auto|fast|marker), SMART_PDF_MD_OUTPUT_DIR, SMART_PDF_MD_IMAGES.
-- SMART_PDF_MD_TEXT_MIN_CHARS, SMART_PDF_MD_TEXT_MIN_RATIO.
-- SMART_PDF_MD_ENGINE (force engine), SMART_PDF_MD_TABLES=1, SMART_PDF_MD_TABLES_FLAVOR=(stream|lattice|auto).
-- Marker/Torch: TORCH_DEVICE, OCR_ENGINE, PYTORCH_CUDA_ALLOC_CONF, CUDA_VISIBLE_DEVICES.
+- SMART_PDF_MD_MODE (auto|fast|marker), SMART_PDF_MD_OUTPUT_DIR, SMART_PDF_MD_IMAGES
+- SMART_PDF_MD_TEXT_MIN_CHARS, SMART_PDF_MD_TEXT_MIN_RATIO
+- SMART_PDF_MD_ENGINE (force engine), SMART_PDF_MD_ENGINE_TEXTUAL, SMART_PDF_MD_ENGINE_NON_TEXTUAL
+- SMART_PDF_MD_TABLES=1; SMART_PDF_MD_TABLES_FLAVOR=(stream|lattice|auto)
+- Marker/Torch: TORCH_DEVICE, OCR_ENGINE, PYTORCH_CUDA_ALLOC_CONF, CUDA_VISIBLE_DEVICES
+
+Per-category engine overrides (auto mode)
+- Keep smart routing (textual vs. non-textual) but choose engines:
+  - `--engine-textual <engine>` for textual PDFs
+  - `--engine-nontextual <engine>` for non-textual PDFs
+  - Defaults: textual → PyMuPDF; non-textual → Marker
 
 ## Logs
 
@@ -130,7 +152,9 @@ Short options
 - -o, --out DIR: output directory
 - --output-format {md,txt}: fast-path output extension (marker remains markdown)
 - -i, --images / -I, --no-images: toggle image extraction for Marker path
-- -e, --engine {auto,fast,marker,poppler,pdfminer,pdfplumber,layout,docling,ocr,lattice}
+- -e, --engine {auto,fast,marker,poppler,pdfminer,pdfplumber,layout,docling,ocr,lattice,pypdf,pypdfium2,pytesseract,unstructured,pdftotree,tabula,grobid,borb,pdfrw,pdfquery,easyocr,kraken,ghostscript,pdfx}
+- --engine-textual <engine>
+- --engine-nontextual <engine>
 - --tables: extract tables to `<stem>.tables.md` via Camelot
 - --tables-mode {auto,stream,lattice}: Camelot mode (auto tries lattice then stream)
 - -c, --min-chars INT: min chars/page to treat as textual
@@ -195,17 +219,39 @@ python -m pip install -e .
 
 - Layout-aware Markdown (PyMuPDF4LLM): `pip install '.[layout]'`
 - Docling engine: `pip install '.[docling]'`
-- Poppler+html2md: `pip install '.[poppler]'` (requires Poppler `pdftohtml` on PATH)
+- Poppler+html2md: `pip install '.[poppler]'` (requires `pdftohtml` on PATH)
 - Tables extraction (Camelot): `pip install '.[tables]'`
   - Stream mode works with pure Python
-  - Lattice mode requires Ghostscript and OpenCV (via `camelot-py[cv]`)
+  - Lattice mode requires Ghostscript and OpenCV
 - OCR layer: `pip install '.[ocr]'` and install OCRmyPDF (and Tesseract) system-wide
+- pdfminer: `pip install '.[pdfminer_engine]'`
+- pdfplumber: `pip install '.[pdfplumber_engine]'`
+- pypdf: `pip install '.[pypdf]'`
+- pypdfium2: `pip install '.[pypdfium2]'`
+- Tesseract OCR (pytesseract): `pip install '.[tesseract]'` (needs system Tesseract; pdf2image needs Poppler)
+- Doctr OCR: `pip install '.[doctr]'`
+- Unstructured: `pip install '.[unstructured]'`
+- PDFToTree: `pip install '.[pdftotree]'`
+- Tabula: `pip install '.[tabula]'` (requires Java)
+- GROBID client: `pip install '.[grobid]'` (requires running server; set `GROBID_URL`)
+- borb: `pip install '.[borb]'`
+- pdfrw: `pip install '.[pdfrw]'`
+- pdfquery: `pip install '.[pdfquery]'`
+- easyocr: `pip install '.[easyocr]'`
+- kraken OCR: `pip install '.[kraken]'` and install the `kraken` CLI
+
+Convenience: requirements-optional.txt
+- Install many optional engines at once:
+  - `pip install -r requirements-optional.txt`
 
 ### System dependencies
 
 - Poppler: install `pdftohtml` (e.g., `apt-get install poppler-utils`, `brew install poppler`, Windows: Poppler binaries on PATH)
 - OCRmyPDF: install OCRmyPDF and Tesseract (`apt-get install ocrmypdf tesseract-ocr`, `brew install ocrmypdf tesseract`)
-- Camelot lattice: install Ghostscript (`apt-get install ghostscript`, `brew install ghostscript`, Windows: install Ghostscript and ensure `gswin64c.exe` on PATH)
+- Camelot lattice: install Ghostscript (`apt-get install ghostscript`, `brew install ghostscript`, Windows: ensure `gswin64c.exe` on PATH)
+- Tabula: requires Java (Tabula)
+- Kraken: install the `kraken` CLI and its models; ensure it’s on PATH
+- GROBID: run a GROBID server; set `GROBID_URL=https://host:port`
 
 ## CI speed-ups and binary checks
 
@@ -214,6 +260,7 @@ python -m pip install -e .
 - Optional `ENABLE_OCR_SMOKE=1` runs an OCR smoke test when OCRmyPDF is available
 - PyInstaller bundles PyMuPDF resources via `--collect-all fitz`
 - CI validates fast-path extraction on a generated PDF (table-like lines + embedded image)
+- Optional job “Test Optional Engines” installs `requirements-optional.txt` and Poppler/Ghostscript, then runs optional-engine tests
 
 ## Troubleshooting
 
