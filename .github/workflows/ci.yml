@@ -112,12 +112,12 @@ jobs:
         run: |
           if [ "${{ env.USE_UV }}" = "1" ]; then
             uv pip install --system -U pip setuptools wheel
-            uv pip install --system numpy
+            uv pip install --system "numpy>=1.26,<3"
             uv pip install --system -r requirements-dev.txt
             uv pip install --system -e .
           else
             python -m pip install -U pip setuptools wheel
-            python -m pip install -U numpy
+            python -m pip install -U "numpy>=1.26,<3"
             python -m pip install -r requirements-dev.txt
             python -m pip install -e .
           fi
@@ -227,13 +227,13 @@ jobs:
         run: |
           if [ "${{ env.USE_UV }}" = "1" ]; then
             uv pip install --system -U pip setuptools wheel
-            uv pip install --system numpy
+            uv pip install --system "numpy>=1.26,<3"
             uv pip install --system -r requirements-dev.txt
             uv pip install --system markdownify pdfminer.six pdfplumber pymupdf4llm docling camelot-py[cv] pandas ocrmypdf requests tabula-py
             uv pip install --system -e .
           else
             python -m pip install -U pip setuptools wheel
-            python -m pip install -U numpy
+            python -m pip install -U "numpy>=1.26,<3"
             python -m pip install -r requirements-dev.txt
             python -m pip install markdownify pdfminer.six pdfplumber pymupdf4llm docling camelot-py[cv] pandas ocrmypdf requests tabula-py
             python -m pip install -e .
@@ -416,3 +416,4 @@ jobs:
       - name: Run mypy
         run: |
           python -m mypy
+
