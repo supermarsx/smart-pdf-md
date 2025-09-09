@@ -337,24 +337,24 @@ jobs:
         run: |
           python -m pip install -q pymupdf pillow
           $code = @"
-import fitz, io
-from PIL import Image
-doc = fitz.open()
-page = doc.new_page()
-page.draw_line((72, 120), (400, 120))
-page.draw_line((72, 160), (400, 160))
-page.draw_line((72, 200), (400, 200))
-page.draw_line((72, 120), (72, 200))
-page.draw_line((236, 120), (236, 200))
-page.draw_line((400, 120), (400, 200))
-page.insert_text((80, 110), "Header1  Header2", fontsize=12)
-page.insert_text((80, 145), "Cell11    Cell12", fontsize=11)
-page.insert_text((80, 185), "Cell21    Cell22", fontsize=11)
-img = Image.new('RGB', (32, 32), color=(200, 50, 50))
-buf = io.BytesIO(); img.save(buf, format='PNG')
-page.insert_image(fitz.Rect(420, 120, 460, 160), stream=buf.getvalue())
-doc.save('sample.pdf'); doc.close()
-"@
+  import fitz, io
+  from PIL import Image
+  doc = fitz.open()
+  page = doc.new_page()
+  page.draw_line((72, 120), (400, 120))
+  page.draw_line((72, 160), (400, 160))
+  page.draw_line((72, 200), (400, 200))
+  page.draw_line((72, 120), (72, 200))
+  page.draw_line((236, 120), (236, 200))
+  page.draw_line((400, 120), (400, 200))
+  page.insert_text((80, 110), "Header1  Header2", fontsize=12)
+  page.insert_text((80, 145), "Cell11    Cell12", fontsize=11)
+  page.insert_text((80, 185), "Cell21    Cell22", fontsize=11)
+  img = Image.new('RGB', (32, 32), color=(200, 50, 50))
+  buf = io.BytesIO(); img.save(buf, format='PNG')
+  page.insert_image(fitz.Rect(420, 120, 460, 160), stream=buf.getvalue())
+  doc.save('sample.pdf'); doc.close()
+  "@
           Set-Content -Path gen_sample.py -Value $code -Encoding utf8
           python gen_sample.py
       - name: Fast path extraction smoke (Windows, PyMuPDF)
