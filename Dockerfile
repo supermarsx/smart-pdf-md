@@ -15,7 +15,8 @@ RUN python -m pip install --upgrade pip \
   && python -m pip install pyinstaller pymupdf marker-pdf \
   && pyinstaller -F --strip -n smart-pdf-md src/smart_pdf_md/__main__.py
 
-FROM debian:bookworm-slim AS final
+# Align runtime glibc with build image to avoid GLIBC mismatch for PyInstaller
+FROM python:3.11-slim AS final
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 libx11-6 \
   && rm -rf /var/lib/apt/lists/*
