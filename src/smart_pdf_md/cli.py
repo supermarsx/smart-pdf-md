@@ -246,6 +246,8 @@ def main(argv: list[str] | None = None) -> int:
         "SMART_PDF_MD_PYTHON",
         "SMART_PDF_MD_COVERAGE",
         "SMART_PDF_MD_ENGINE",
+        "SMART_PDF_MD_ENGINE_TEXTUAL",
+        "SMART_PDF_MD_ENGINE_NON_TEXTUAL",
         "SMART_PDF_MD_TABLES",
         # Marker/Torch common envs
         "TORCH_DEVICE",
@@ -418,6 +420,20 @@ def main(argv: list[str] | None = None) -> int:
             if ns.engine
             else str(cfg.get("engine")).lower()
             if cfg.get("engine")
+            else None
+        ),
+        engine_textual=(
+            ns.engine_textual.lower()
+            if getattr(ns, "engine_textual", None)
+            else str(cfg.get("engine_textual")).lower()
+            if cfg.get("engine_textual")
+            else None
+        ),
+        engine_non_textual=(
+            ns.engine_non_textual.lower()
+            if getattr(ns, "engine_non_textual", None)
+            else str(cfg.get("engine_non_textual")).lower()
+            if cfg.get("engine_non_textual")
             else None
         ),
         tables=(

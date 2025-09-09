@@ -31,6 +31,8 @@ HIGHRES = 120
 # Configurable globals (overridable via set_config)
 MODE = os.environ.get("SMART_PDF_MD_MODE", "auto").lower()
 ENGINE = os.environ.get("SMART_PDF_MD_ENGINE")
+ENGINE_TEXTUAL = os.environ.get("SMART_PDF_MD_ENGINE_TEXTUAL")
+ENGINE_NON_TEXTUAL = os.environ.get("SMART_PDF_MD_ENGINE_NON_TEXTUAL")
 TABLES = os.environ.get("SMART_PDF_MD_TABLES", "0") == "1"
 TABLES_FLAVOR = os.environ.get("SMART_PDF_MD_TABLES_FLAVOR", "stream").lower()
 MOCK = os.environ.get("SMART_PDF_MD_MARKER_MOCK", "0") == "1"
@@ -70,6 +72,8 @@ def set_config(
     progress: bool | None = None,
     output_format: str | None = None,
     engine: str | None = None,
+    engine_textual: str | None = None,
+    engine_non_textual: str | None = None,
     tables: bool | None = None,
     tables_flavor: str | None = None,
     include: list[str] | None = None,
@@ -99,6 +103,8 @@ def set_config(
         LOG_JSON, \
         LOG_FILE, \
         ENGINE, \
+        ENGINE_TEXTUAL, \
+        ENGINE_NON_TEXTUAL, \
         TABLES, \
         TABLES_FLAVOR
     if mode is not None:
@@ -129,6 +135,10 @@ def set_config(
         OUTPUT_FORMAT = str(output_format).lower()
     if engine is not None:
         ENGINE = engine
+    if engine_textual is not None:
+        ENGINE_TEXTUAL = engine_textual
+    if engine_non_textual is not None:
+        ENGINE_NON_TEXTUAL = engine_non_textual
     if tables is not None:
         TABLES = bool(tables)
     if tables_flavor is not None:
@@ -533,6 +543,36 @@ def convert_via_docling(pdf: str, outdir: str | Path) -> int:
     return 0
 
 
+def _run_engine_by_name(eng: str, pdf: str, outdir: str | Path, slice_pages: int) -> int:
+    e = eng.lower()
+    if e in ("pymupdf", "fast"):
+        return _run_with_tables(pdf, outdir, convert_text)
+    if e in ("marker",):
+        rc = marker_convert(str(pdf), str(outdir), slice_pages)
+        if rc == 0 and TABLES:
+            extract_tables_to_md(str(pdf), str(outdir))
+        return rc
+    if e in ("poppler", "poppler-html2md", "html2md"):
+        return _run_with_tables(pdf, outdir, convert_via_poppler)
+    if e in ("pdfminer", "pdfminer.six"):
+        return _run_with_tables(pdf, outdir, convert_via_pdfminer)
+    if e in ("pdfplumber",):
+        return _run_with_tables(pdf, outdir, convert_via_pdfplumber)
+    if e in ("ocrmypdf", "ocr"):
+        rc = convert_via_ocrmypdf(str(pdf), str(outdir))
+        if rc == 0 and TABLES:
+            extract_tables_to_md(str(pdf), str(outdir))
+        return rc
+    if e in ("docling",):
+        return _run_with_tables(pdf, outdir, convert_via_docling)
+    if e in ("layout", "pymupdf4llm"):
+        return _run_with_tables(pdf, outdir, convert_via_layout)
+    if e in ("lattice", "camelot-lattice"):
+        return _run_with_tables(pdf, outdir, convert_text, flavor="lattice")
+    log(f"[ERROR] unknown engine: {eng}", level="ERROR")
+    return 9
+
+
 def marker_slice(pdf: str, outdir: str | Path, start: int, end: int) -> int:
     """Execute marker for a page slice (inclusive indices), or mock when enabled."""
     if DRY_RUN:
@@ -644,33 +684,7 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
         if ENGINE:
             eng = ENGINE.lower()
             log(f"[eng  ] FORCED ENGINE -> {eng}")
-            if eng in ("pymupdf", "fast"):
-                return _run_with_tables(str(pdf), str(outdir), convert_text)
-            if eng in ("marker",):
-                rc = marker_convert(str(pdf), str(outdir), slice_pages)
-                if rc == 0 and TABLES:
-                    extract_tables_to_md(str(pdf), str(outdir))
-                return rc
-            if eng in ("poppler", "poppler-html2md", "html2md"):
-                return _run_with_tables(str(pdf), str(outdir), convert_via_poppler)
-            if eng in ("pdfminer", "pdfminer.six"):
-                return _run_with_tables(str(pdf), str(outdir), convert_via_pdfminer)
-            if eng in ("pdfplumber",):
-                return _run_with_tables(str(pdf), str(outdir), convert_via_pdfplumber)
-            if eng in ("ocrmypdf", "ocr"):
-                rc = convert_via_ocrmypdf(str(pdf), str(outdir))
-                if rc == 0 and TABLES:
-                    extract_tables_to_md(str(pdf), str(outdir))
-                return rc
-            if eng in ("docling",):
-                return _run_with_tables(str(pdf), str(outdir), convert_via_docling)
-            if eng in ("layout", "pymupdf4llm"):
-                return _run_with_tables(str(pdf), str(outdir), convert_via_layout)
-            if eng in ("lattice", "camelot-lattice"):
-                # Run text conversion, but force lattice table extraction
-                return _run_with_tables(str(pdf), str(outdir), convert_text, flavor="lattice")
-            log(f"[ERROR] unknown engine: {ENGINE}", level="ERROR")
-            return 9
+            return _run_engine_by_name(eng, str(pdf), str(outdir), slice_pages)
         if MODE == "fast":
             log("[path ] FORCED FAST -> PyMuPDF")
             return _run_with_tables(str(pdf), str(outdir), convert_text)
@@ -681,8 +695,16 @@ def process_one(pdf: Path, idx: int, total: int, slice_pages: int) -> int:
                 extract_tables_to_md(str(pdf), str(outdir))
             return rc
         if is_textual(str(pdf)):
+            # Auto textual routing; allow override engine for textual category
+            if ENGINE_TEXTUAL:
+                log(f"[path ] TEXTUAL -> engine={ENGINE_TEXTUAL}")
+                return _run_engine_by_name(ENGINE_TEXTUAL, str(pdf), str(outdir), slice_pages)
             log("[path ] TEXTUAL -> fast PyMuPDF")
             return _run_with_tables(str(pdf), str(outdir), convert_text)
+        # Non-textual
+        if ENGINE_NON_TEXTUAL:
+            log(f"[path ] NON-TEXTUAL -> engine={ENGINE_NON_TEXTUAL}")
+            return _run_engine_by_name(ENGINE_NON_TEXTUAL, str(pdf), str(outdir), slice_pages)
         log("[path ] NON-TEXTUAL -> marker_single")
         rc = marker_convert(str(pdf), str(outdir), slice_pages)
         if rc == 0 and TABLES:
