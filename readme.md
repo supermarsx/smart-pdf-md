@@ -198,8 +198,8 @@ python smart-pdf-md.py INPUT SLICE [options]
 | `-I`, `--no-images` | — | — | off | Disable image extraction in Marker path |
 | `-c`, `--min-chars` | — | int | 100 | Min chars/page to treat as textual |
 | `-r`, `--min-ratio` | — | float | 0.2 | Min ratio of textual pages |
-| `-S`, `--include` | — | glob | — | Include pattern(s) when scanning folders (repeatable) |
-| `-X`, `--exclude` | — | glob | — | Exclude pattern(s) when scanning folders (repeatable) |
+| `-S`, `--include` | - | fnmatch glob | - | Include pattern(s) on relative paths; use '/' (repeatable) |
+| `-X`, `--exclude` | - | fnmatch glob | - | Exclude pattern(s) on relative paths; use '/' (repeatable) |
 | `-p`, `--progress` | — | — | off | Show incremental progress (pages/slices) |
 | `-n`, `--dry-run` | — | — | off | Log actions only; do not write outputs or run Marker |
 | `-L`, `--log-level` | — | DEBUG, INFO, WARNING, ERROR, CRITICAL | INFO | Logging threshold |
@@ -225,6 +225,17 @@ Example
 python smart-pdf-md.py . 40 -m marker -M -o out -i -p --output-format md \
   -S "**/Handbooks/*.pdf" -X "**/*draft*.pdf" -L INFO --log-json --log-file run.log
 `
+
+#### Pattern semantics
+
+- Type: Python fnmatch-style globs (not shell expansion). Applies to the relative path and the filename.
+- Separator: Always use forward slashes (`/`) even on Windows. The matcher normalizes paths.
+- Wildcards: `*` (any chars), `?` (single char), `[abc]` (class), `[!abc]` (negated class).
+- Recursion: Directory recursion is already handled. Patterns can include `**` for readability; it behaves like `*` in fnmatch.
+- Examples:
+  - Include only a subtree: `-S "docs/**/*.pdf"`
+  - Exclude drafts anywhere: `-X "**/*draft*.pdf"`
+  - Include vendor files by name: `-S "vendor-*.pdf"`
 
 ## Build & Test Matrix
 

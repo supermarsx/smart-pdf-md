@@ -1084,9 +1084,16 @@ def marker_convert(pdf: str, outdir: str | Path, slice_pages: int) -> int:
 
 def _pattern_match(path: Path, patterns: list[str]) -> bool:
     from fnmatch import fnmatch
+    import os as _os
 
-    s = str(path)
-    return any(fnmatch(s, pat) or fnmatch(path.name, pat) for pat in patterns)
+    # Normalize to forward slashes for cross-platform consistency with docs/examples
+    s_full = str(path).replace(_os.sep, "/")
+    s_name = path.name
+    for pat in patterns:
+        p = pat.replace("\\", "/").replace(_os.sep, "/")
+        if fnmatch(s_full, p) or fnmatch(s_name, p):
+            return True
+    return False
 
 
 def iter_input_files(inp: Path) -> Iterable[Path]:

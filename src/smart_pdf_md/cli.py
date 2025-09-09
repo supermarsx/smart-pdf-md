@@ -219,13 +219,19 @@ def build_parser() -> argparse.ArgumentParser:
         "-S",
         "--include",
         action="append",
-        help="Glob pattern(s) to include when scanning a folder",
+        help=(
+            "Include pattern(s) (fnmatch-style) matched against relative paths; "
+            "use '/' as separator. Repeatable."
+        ),
     )
     p.add_argument(
         "-X",
         "--exclude",
         action="append",
-        help="Glob pattern(s) to exclude when scanning a folder",
+        help=(
+            "Exclude pattern(s) (fnmatch-style) matched against relative paths; "
+            "use '/' as separator. Repeatable."
+        ),
     )
     p.add_argument(
         "-V",
