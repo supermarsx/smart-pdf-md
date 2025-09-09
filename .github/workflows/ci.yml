@@ -37,7 +37,7 @@ jobs:
             requirements-dev.in
             pyproject.toml
       - name: Setup uv (optional)
-        if: env.USE_UV == '1'
+        if: ${{ env.USE_UV == '1' }}
         uses: astral-sh/setup-uv@v5
       - name: Install lint deps
         run: |
@@ -70,7 +70,7 @@ jobs:
             requirements-dev.in
             pyproject.toml
       - name: Setup uv (optional)
-        if: env.USE_UV == '1'
+        if: ${{ env.USE_UV == '1' }}
         uses: astral-sh/setup-uv@v5
       - name: Install format deps
         run: |
@@ -106,7 +106,7 @@ jobs:
             requirements-dev.in
             pyproject.toml
       - name: Setup uv (optional)
-        if: env.USE_UV == '1'
+        if: ${{ env.USE_UV == '1' }}
         uses: astral-sh/setup-uv@v5
       - name: Install test deps
         run: |
@@ -138,15 +138,15 @@ jobs:
           doc = fitz.open(); doc.new_page(); doc.save(p); doc.close()
           PY
       - name: OCR smoke (optional)
-        if: env.ENABLE_OCR_SMOKE == '1' && runner.os == 'Linux'
+        if: ${{ env.ENABLE_OCR_SMOKE == '1' && runner.os == 'Linux' }}
         shell: bash
         run: |
-          if ! command -v >/dev/null 2>&1; then
+          if ! command -v ocrmypdf >/dev/null 2>&1; then
             echo "ocrmypdf not found; skipping";
             exit 0;
           fi
           : > smoke.pdf
-          python -m smart_pdf_md smoke.pdf 5 -e
+          python -m smart_pdf_md smoke.pdf 5 -e ocrmypdf
           test -f smoke.md
           python -m smart_pdf_md smoke.pdf 5
           python - <<'PY'
@@ -219,7 +219,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends poppler-utils ghostscript
       - name: Setup uv (optional)
-        if: env.USE_UV == '1'
+        if: ${{ env.USE_UV == '1' }}
         uses: astral-sh/setup-uv@v5
       - name: Install dev + minimal optional deps for tests
         env:
@@ -375,16 +375,7 @@ jobs:
           "$BIN" smoke.pdf 5
           test -f smoke.md
 
-  docker-smoke:
-    name: Docker Smoke (ubuntu)
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-          docker build -t smart-pdf-md:ci .
-      - name: Run --version
+  docker-smoke:\n    name: Docker Smoke (ubuntu)\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v4\n      - name: Build Docker image\n        run: |\n          docker build -t smart-pdf-md:ci .\n      - name: Run --version\n        run: |\n          docker run --rm smart-pdf-md:ci --version\n  typecheck:\n    name: Type Check (mypy)
         run: |
           docker run --rm smart-pdf-md:ci --version
   typecheck:
@@ -406,7 +397,7 @@ jobs:
             requirements-dev.in
             pyproject.toml
       - name: Setup uv (optional)
-        if: env.USE_UV == '1'
+        if: ${{ env.USE_UV == '1' }}
         uses: astral-sh/setup-uv@v5
       - name: Install dev deps
         run: |
@@ -427,7 +418,7 @@ jobs:
   test-ocr-optional:
     name: Test OCR Optional (ubuntu / ocrmypdf)
     needs: format
-    if: env.ENABLE_OCR_SMOKE == '1'
+    if: ${{ env.ENABLE_OCR_SMOKE == '1' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -457,7 +448,9 @@ jobs:
           python -m pip install pymupdf
           python -m pip install -e .
       - name: Run OCRmyPDF test
-        run: |
-          python -m pytest -q tests/test_engines_optional.py::test_ocrmypdf_engine_if_available
+        run: |\n          python -m pytest -q tests/test_engines_optional.py::test_ocrmypdf_engine_if_available
+
+
+
 
 
