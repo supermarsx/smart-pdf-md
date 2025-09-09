@@ -16,7 +16,6 @@ pdf2image          # rasterization for OCR
 Pillow             # imaging for OCR
 python-doctr       # deep OCR engine (heavy)
 unstructured       # unstructured partition engine
-pdftotree          # layout to HTML
 tabula-py          # table extraction via Java Tabula
 requests           # grobid client HTTP
 borb               # borb engine
@@ -24,3 +23,4 @@ pdfrw              # pdfrw engine
 pdfquery           # pdfquery engine
 easyocr            # OCR engine
 kraken             # OCR engine (CLI wrapper)
+

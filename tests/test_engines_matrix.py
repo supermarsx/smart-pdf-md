@@ -32,7 +32,6 @@ def run_cli(args: list[str], *, env: dict | None = None) -> subprocess.Completed
         ("pypdfium2", ["pypdfium2"], [], []),
         ("pytesseract", ["pdf2image", "PIL", "pytesseract"], ["pdftoppm"], []),
         ("unstructured", ["unstructured.partition.pdf"], [], []),
-        ("pdftotree", ["pdftotree", "markdownify"], [], []),
         ("tabula", ["tabula", "pandas"], ["java"], []),
         ("grobid", ["requests"], [], ["GROBID_URL"]),
         ("pdfx", ["pdfx"], [], []),

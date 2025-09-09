@@ -14,7 +14,6 @@ pdf2image
 Pillow
 python-doctr
 unstructured
-pdftotree
 tabula-py
 requests
 borb
@@ -22,3 +21,4 @@ pdfrw
 pdfquery
 easyocr
 kraken
+

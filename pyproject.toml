@@ -66,10 +66,6 @@ doctr = [
 unstructured = [
   "unstructured",
 ]
-pdftotree = [
-  "pdftotree",
-  "markdownify",
-]
 tabula = [
   "tabula-py",
   "pandas",
@@ -137,4 +133,5 @@ no_implicit_optional = false
 show_error_codes = true
 pretty = true
 files = ["src"]
+
 

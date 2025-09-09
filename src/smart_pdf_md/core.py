@@ -640,25 +640,6 @@ def convert_via_unstructured(pdf: str, outdir: str | Path) -> int:
     return 0
 
 
-def convert_via_pdftotree(pdf: str, outdir: str | Path) -> int:
-    try:
-        import pdftotree
-        import markdownify
-    except Exception:
-        log("[ERROR] packages 'pdftotree' and 'markdownify' required", level="ERROR")
-        return 4
-    try:
-        html = pdftotree.parse(pdf)
-    except Exception as e:
-        log(f"[ERROR] pdftotree failed: {e!r}", level="ERROR")
-        return 4
-    md = markdownify.markdownify(html, heading_style="ATX")
-    out = Path(outdir) / (Path(pdf).stem + ".md")
-    out.write_text(md, encoding="utf-8")
-    log(f"[OK   ] pdftotree {pdf} -> {out}")
-    return 0
-
-
 def convert_via_tabula(pdf: str, outdir: str | Path) -> int:
     try:
         import tabula
@@ -990,8 +971,7 @@ def _run_engine_by_name(eng: str, pdf: str, outdir: str | Path, slice_pages: int
         return _run_with_tables(pdf, outdir, convert_via_pytesseract)
     if e in ("unstructured",):
         return _run_with_tables(pdf, outdir, convert_via_unstructured)
-    if e in ("pdftotree",):
-        return _run_with_tables(pdf, outdir, convert_via_pdftotree)
+    # pdftotree engine removed
     if e in ("tabula", "tabula-py"):
         return _run_with_tables(pdf, outdir, convert_via_tabula)
     if e in ("grobid",):
