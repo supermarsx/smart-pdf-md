@@ -4,11 +4,13 @@ readme.md
 src/smart_pdf_md/__init__.py
 src/smart_pdf_md/__main__.py
 src/smart_pdf_md/cli.py
+src/smart_pdf_md/config.py
 src/smart_pdf_md/core.py
 src/smart_pdf_md.egg-info/PKG-INFO
 src/smart_pdf_md.egg-info/SOURCES.txt
 src/smart_pdf_md.egg-info/dependency_links.txt
 src/smart_pdf_md.egg-info/entry_points.txt
+src/smart_pdf_md.egg-info/requires.txt
 src/smart_pdf_md.egg-info/top_level.txt
 tests/test_backoff_and_cli.py
 tests/test_cli_and_paths_more.py
