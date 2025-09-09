@@ -118,11 +118,11 @@ jobs:
             python -m pip install -r requirements-dev.txt
             python -m pip install -e .
           fi
-      - name: Run tests
+      - name: Run tests (with coverage for package)
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"
         run: |
-          python -m pytest -q --cov=tests --cov-report=term-missing --cov-report=xml:coverage.pytest.xml
+          python -m pytest -q --cov=smart_pdf_md --cov-report=term-missing --cov-report=xml:coverage.pytest.xml
       - name: Script smoke (mock)
         env:
           SMART_PDF_MD_MARKER_MOCK: "1"

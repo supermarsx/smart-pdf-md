@@ -3,15 +3,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def ensure_pymupdf():
-    try:
-        import importlib.util  # noqa: F401
-
-        if importlib.util.find_spec("fitz") is None:
-            raise ImportError
-    except Exception:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pymupdf"])  # noqa: S603,S607
+    pytest.importorskip("fitz")
 
 
 def make_text_pdf(path: Path, text: str = "Hello from smart-pdf-md") -> None:
