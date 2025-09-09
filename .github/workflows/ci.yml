@@ -195,6 +195,48 @@ jobs:
             coverage_html
             coverage.txt
 
+  test-optional:
+    name: Test Optional Engines (ubuntu / py3.11)
+    needs: format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements.in
+            requirements-dev.in
+            requirements-optional.txt
+            pyproject.toml
+      - name: Install system dependencies (optional engines)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends poppler-utils ghostscript
+      - name: Setup uv (optional)
+        if: env.USE_UV == '1'
+        uses: astral-sh/setup-uv@v5
+      - name: Install dev + optional deps
+        run: |
+          if [ "${{ env.USE_UV }}" = "1" ]; then
+            uv pip install --system -r requirements-dev.txt
+            uv pip install --system -r requirements-optional.txt
+            uv pip install --system -e .
+          else
+            python -m pip install -U pip
+            python -m pip install -r requirements-dev.txt
+            python -m pip install -r requirements-optional.txt
+            python -m pip install -e .
+          fi
+      - name: Run optional engine tests
+        run: |
+          python -m pytest -q tests/test_engines_optional.py
+
   build:
     name: Build (${{ matrix.os }})
     needs: typecheck
