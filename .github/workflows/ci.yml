@@ -182,9 +182,13 @@ jobs:
           PY
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add badges/coverage.svg docs/coverage.md
-          git diff --cached --quiet || git commit -m "chore(coverage): update badge and summary from CI"
-          git push
+          git add badges/coverage.svg docs/coverage.md || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(coverage): update badge and summary from CI" || true
+            git push || echo "Skipping push (no permissions or branch protected)"
+          else
+            echo "No coverage badge changes to commit"
+          fi
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         with:
