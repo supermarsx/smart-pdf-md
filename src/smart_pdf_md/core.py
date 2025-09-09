@@ -511,6 +511,220 @@ def extract_tables_to_md(pdf: str, outdir: str | Path, *, flavor: str | None = N
         log(f"[OK   ] tables -> {out}")
 
 
+def convert_via_pypdf(pdf: str, outdir: str | Path) -> int:
+    try:
+        from pypdf import PdfReader
+    except Exception:
+        log("[ERROR] python package 'pypdf' not installed", level="ERROR")
+        return 4
+    try:
+        reader = PdfReader(pdf)
+    except Exception as e:
+        log(f"[ERROR] pypdf cannot open: {e!r}", level="ERROR")
+        return 4
+    texts: list[str] = []
+    for page in reader.pages:
+        try:
+            t = page.extract_text() or ""
+        except Exception:
+            t = ""
+        texts.append(t)
+    text = "\n\n".join(texts)
+    out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+    out.write_text(text, encoding="utf-8")
+    log(f"[OK   ] pypdf {pdf} -> {out}")
+    return 0
+
+
+def convert_via_pypdfium2(pdf: str, outdir: str | Path) -> int:
+    try:
+        import pypdfium2 as pdfium
+    except Exception:
+        log("[ERROR] python package 'pypdfium2' not installed", level="ERROR")
+        return 4
+    try:
+        doc = pdfium.PdfDocument(pdf)
+    except Exception as e:
+        log(f"[ERROR] pypdfium2 cannot open: {e!r}", level="ERROR")
+        return 4
+    parts: list[str] = []
+    try:
+        for i in range(len(doc)):
+            page = doc[i]
+            textpage = page.get_textpage()
+            try:
+                txt = textpage.get_text_range(0, textpage.count_chars()) or ""
+            except Exception:
+                txt = textpage.get_text_bounded() or ""  # fallback
+            parts.append(txt)
+    finally:
+        try:
+            doc.close()
+        except Exception:
+            pass
+    out = Path(outdir) / (Path(pdf).stem + (".txt" if OUTPUT_FORMAT == "txt" else ".md"))
+    out.write_text("\n\n".join(parts), encoding="utf-8")
+    log(f"[OK   ] pypdfium2 {pdf} -> {out}")
+    return 0
+
+
+def convert_via_pytesseract(pdf: str, outdir: str | Path) -> int:
+    try:
+        from pdf2image import convert_from_path
+        from PIL import Image  # noqa: F401
+        import pytesseract
+    except Exception:
+        log("[ERROR] packages 'pdf2image', 'Pillow', and 'pytesseract' required", level="ERROR")
+        return 4
+    try:
+        images = convert_from_path(pdf)
+    except Exception as e:
+        log(f"[ERROR] pdf2image failed: {e!r}", level="ERROR")
+        return 4
+    parts: list[str] = []
+    for img in images:
+        try:
+            parts.append(pytesseract.image_to_string(img))
+        except Exception:
+            parts.append("")
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text("\n\n".join(parts), encoding="utf-8")
+    log(f"[OK   ] pytesseract {pdf} -> {out}")
+    return 0
+
+
+def convert_via_doctr(pdf: str, outdir: str | Path) -> int:
+    try:
+        from doctr.io import DocumentFile
+        from doctr.models import ocr_predictor
+    except Exception:
+        log("[ERROR] python package 'python-doctr' not installed", level="ERROR")
+        return 4
+    try:
+        doc = DocumentFile.from_pdf(pdf)
+        model = ocr_predictor(pretrained=True)
+        result = model(doc)
+        # Export to Markdown-like text from dict
+        export = result.export()
+        blocks: list[str] = []
+        for page in export.get("pages", []) or []:
+            for block in page.get("blocks", []) or []:
+                for line in block.get("lines", []) or []:
+                    words = [w.get("value", "") for w in (line.get("words", []) or [])]
+                    blocks.append(" ".join(words))
+        text = "\n".join(blocks)
+    except Exception as e:  # pragma: no cover - heavy model
+        log(f"[ERROR] doctr OCR failed: {e!r}", level="ERROR")
+        return 4
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(text, encoding="utf-8")
+    log(f"[OK   ] doctr {pdf} -> {out}")
+    return 0
+
+
+def convert_via_unstructured(pdf: str, outdir: str | Path) -> int:
+    try:
+        from unstructured.partition.pdf import partition_pdf
+    except Exception:
+        log("[ERROR] python package 'unstructured' not installed", level="ERROR")
+        return 4
+    try:
+        elements = partition_pdf(filename=pdf)
+    except Exception as e:
+        log(f"[ERROR] unstructured failed: {e!r}", level="ERROR")
+        return 4
+    text = "\n\n".join([getattr(el, "text", "") or "" for el in elements])
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(text, encoding="utf-8")
+    log(f"[OK   ] unstructured {pdf} -> {out}")
+    return 0
+
+
+def convert_via_pdftotree(pdf: str, outdir: str | Path) -> int:
+    try:
+        import pdftotree
+        import markdownify
+    except Exception:
+        log("[ERROR] packages 'pdftotree' and 'markdownify' required", level="ERROR")
+        return 4
+    try:
+        html = pdftotree.parse(pdf)
+    except Exception as e:
+        log(f"[ERROR] pdftotree failed: {e!r}", level="ERROR")
+        return 4
+    md = markdownify.markdownify(html, heading_style="ATX")
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(md, encoding="utf-8")
+    log(f"[OK   ] pdftotree {pdf} -> {out}")
+    return 0
+
+
+def convert_via_tabula(pdf: str, outdir: str | Path) -> int:
+    try:
+        import tabula
+        import pandas as pd  # noqa: F401
+    except Exception:
+        log("[ERROR] packages 'tabula-py' and 'pandas' required", level="ERROR")
+        return 4
+    try:
+        dfs = tabula.read_pdf(pdf, pages="all", lattice=True)
+    except Exception as e:
+        log(f"[ERROR] tabula.read_pdf failed: {e!r}", level="ERROR")
+        return 4
+    parts: list[str] = [f"# Tables extracted from {Path(pdf).name}"]
+    for i, df in enumerate(dfs or [], 1):
+        try:
+            parts.append(f"\n\n## Table {i}\n\n{df.to_markdown(index=False)}")
+        except Exception:
+            continue
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text("".join(parts), encoding="utf-8")
+    log(f"[OK   ] tabula {pdf} -> {out}")
+    return 0
+
+
+def convert_via_grobid(pdf: str, outdir: str | Path) -> int:
+    url = os.environ.get("GROBID_URL")
+    if not url:
+        log("[ERROR] set GROBID_URL to your grobid server base URL", level="ERROR")
+        return 4
+    try:
+        import requests  # type: ignore[import-untyped]
+        import xml.etree.ElementTree as ET
+    except Exception:
+        log("[ERROR] python package 'requests' required for grobid engine", level="ERROR")
+        return 4
+    try:
+        with open(pdf, "rb") as fh:
+            files = {"input": (Path(pdf).name, fh, "application/pdf")}
+            resp = requests.post(
+                url.rstrip("/") + "/api/processFulltextDocument", files=files, timeout=120
+            )
+        if resp.status_code != 200:
+            log(f"[ERROR] grobid http {resp.status_code}", level="ERROR")
+            return 4
+        tei = resp.text
+    except Exception as e:
+        log(f"[ERROR] grobid request failed: {e!r}", level="ERROR")
+        return 4
+    # Write TEI alongside and produce a minimal markdown from paragraphs
+    tei_path = Path(outdir) / (Path(pdf).stem + ".tei.xml")
+    tei_path.write_text(tei, encoding="utf-8")
+    try:
+        root = ET.fromstring(tei)
+        ns = {"tei": root.tag.split("}")[0].strip("{") if "}" in root.tag else ""}
+        paras = []
+        for p in root.findall(".//tei:p", ns) if ns.get("tei") else root.findall(".//p"):
+            paras.append("".join(p.itertext()).strip())
+        md = "\n\n".join(paras) if paras else f"(See {tei_path.name})"
+    except Exception:
+        md = f"(See {tei_path.name})"
+    out = Path(outdir) / (Path(pdf).stem + ".md")
+    out.write_text(md, encoding="utf-8")
+    log(f"[OK   ] grobid {pdf} -> {out}")
+    return 0
+
+
 def _run_with_tables(pdf: str, outdir: str | Path, fn: Any, *, flavor: str | None = None) -> int:
     # Call the provided engine runner and, on success, extract tables when requested.
     rc = int(fn(str(pdf), str(outdir)))
@@ -569,6 +783,20 @@ def _run_engine_by_name(eng: str, pdf: str, outdir: str | Path, slice_pages: int
         return _run_with_tables(pdf, outdir, convert_via_layout)
     if e in ("lattice", "camelot-lattice"):
         return _run_with_tables(pdf, outdir, convert_text, flavor="lattice")
+    if e in ("pypdf",):
+        return _run_with_tables(pdf, outdir, convert_via_pypdf)
+    if e in ("pypdfium2",):
+        return _run_with_tables(pdf, outdir, convert_via_pypdfium2)
+    if e in ("pytesseract", "tesseract"):
+        return _run_with_tables(pdf, outdir, convert_via_pytesseract)
+    if e in ("unstructured",):
+        return _run_with_tables(pdf, outdir, convert_via_unstructured)
+    if e in ("pdftotree",):
+        return _run_with_tables(pdf, outdir, convert_via_pdftotree)
+    if e in ("tabula", "tabula-py"):
+        return _run_with_tables(pdf, outdir, convert_via_tabula)
+    if e in ("grobid",):
+        return _run_with_tables(pdf, outdir, convert_via_grobid)
     log(f"[ERROR] unknown engine: {eng}", level="ERROR")
     return 9
 

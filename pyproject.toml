@@ -43,6 +43,40 @@ tables = [
   "camelot-py[cv]",
   "pandas",
 ]
+pdfminer_engine = [
+  "pdfminer.six",
+]
+pdfplumber_engine = [
+  "pdfplumber",
+]
+pypdf = [
+  "pypdf",
+]
+pypdfium2 = [
+  "pypdfium2",
+]
+tesseract = [
+  "pytesseract",
+  "pdf2image",
+  "Pillow",
+]
+doctr = [
+  "python-doctr",
+]
+unstructured = [
+  "unstructured",
+]
+pdftotree = [
+  "pdftotree",
+  "markdownify",
+]
+tabula = [
+  "tabula-py",
+  "pandas",
+]
+grobid = [
+  "requests",
+]
 
 [project.urls]
 Homepage = "https://github.com/supermarsx/smart-pdf-md"

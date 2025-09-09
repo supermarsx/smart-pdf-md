@@ -9,4 +9,13 @@ docling            # docling engine
 camelot-py[cv]     # table extraction (lattice support)
 pandas             # tables to markdown rendering
 ocrmypdf           # OCR preprocessing engine
-
+pypdf              # pypdf engine
+pypdfium2          # pypdfium2 engine
+pytesseract        # OCR (Tesseract)
+pdf2image          # rasterization for OCR
+Pillow             # imaging for OCR
+python-doctr       # deep OCR engine (heavy)
+unstructured       # unstructured partition engine
+pdftotree          # layout to HTML
+tabula-py          # table extraction via Java Tabula
+requests           # grobid client HTTP
