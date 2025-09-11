@@ -198,44 +198,41 @@ python smart-pdf-md.py INPUT SLICE [options]
 
 ### CLI Options
 
-| Option | Alt | Values | Default | Description |
-|---|---|---|---|---|
-| `INPUT` | — | path | required | PDF file or directory to process |
-| `SLICE` | — | int | required | Max pages per Marker slice (e.g., 40) |
-| `-m`, `--mode` | — | auto, fast, marker | auto | Processing mode/routing |
-| `-e`, `--engine` | - | see list below | - | Force a specific engine (see "Available engines") |
-| `-ET`, `--engine-textual` | - | see list below | pymupdf | Engine for textual PDFs in auto mode |
-| `-EN`, `--engine-nontextual` | - | see list below | marker | Engine for non-textual PDFs in auto mode |
-| `-o`, `--out` | — | dir | alongside input | Output directory |
-| `-f`, `--output-format` | — | md, txt | md | Fast path output format (Marker always md) |
-| `-B`, `--tables` | — | — | off | Extract tables to `<stem>.tables.md` via Camelot |
-| `-b`, `--tables-mode` | — | auto, stream, lattice | stream | Camelot mode (auto tries lattice then stream) |
-| `-i`, `--images` | - | - | off | Enable image extraction in Marker path (default: disabled) |
-| `-I`, `--no-images` | - | - | off | Explicitly disable images (default) |
-| `-c`, `--min-chars` | — | int | 100 | Min chars/page to treat as textual |
-| `-r`, `--min-ratio` | — | float | 0.2 | Min ratio of textual pages |
-| `-S`, `--include` | - | fnmatch glob | - | Include pattern(s) on relative paths; use '/' (repeatable) |
-| `-X`, `--exclude` | - | fnmatch glob | - | Exclude pattern(s) on relative paths; use '/' (repeatable) |
-| `-p`, `--progress` | — | — | off | Show incremental progress (pages/slices) |
-| `-n`, `--dry-run` | — | — | off | Log actions only; do not write outputs or run Marker |
-| `-L`, `--log-level` | — | DEBUG, INFO, WARNING, ERROR, CRITICAL | INFO | Logging threshold |
-| `-q`, `--quiet` | — | — | off | Set log level to ERROR (overrides mode) |
-| `-v`, `--verbose` | — | — | off | Set log level to DEBUG (overrides mode) |
-| `-J`, `--log-json` | — | — | off | Emit JSON logs (ts, level, message) |
-| `-LF`, `--log-file` | — | path | — | Append logs to a file (1MB simple rotation) |
-| `-C`, `--config` | — | file | — | Load TOML/YAML/JSON config; CLI overrides config |
-| `-E`, `--env` | — | `KEY=VALUE` | — | Set env var(s) for this run (repeatable) |
-| `-w`, `--no-warn-unknown-env` | — | — | off | Suppress warnings for unknown env keys |
-| `-T`, `--torch-device` | - | value | - | Set `TORCH_DEVICE` (e.g., `cpu`, `cuda`, `cuda:0`, `mps`, `auto`) |
-| `-O`, `--ocr-engine` | - | value | - | Set `OCR_ENGINE` (`None` or `surya`) |
-| `-P`, `--pytorch-alloc-conf` | - | k:v pairs | - | Set `PYTORCH_CUDA_ALLOC_CONF` (e.g., `caching_allocator:1,pooled:1,nmalloc:3,heuristic:1`) |
-| `-P`, `--pytorch-alloc-conf` | — | value | — | Set `PYTORCH_CUDA_ALLOC_CONF` |
-| `-G`, `--cuda-visible-devices` | - | value | - | Set `CUDA_VISIBLE_DEVICES` GPU index list, e.g., `0`, `0,1`, `3` |
-| `-t`, `--timeout` | — | int | — | Marker subprocess timeout (seconds) |
-| `-x`, `--retries` | — | int | — | Retries for Marker subprocess |
-| `-R`, `--resume` | — | — | off | Skip PDFs whose outputs already exist |
-| `-D`, `--check-deps` | `-y`, `--yes` | — | off | Check/install optional deps; `-y` assumes yes |
-| `-V`, `--version` | — | — | — | Show version and exit |
+- `INPUT` (required): PDF file or directory to process.
+- `SLICE` (required, int): Max pages per Marker slice (e.g., 40).
+- `-m`, `--mode` (auto|fast|marker, default: auto): Processing mode/routing.
+- `-e`, `--engine`: Force a specific engine (see "Available engines").
+- `-ET`, `--engine-textual` (default: pymupdf): Engine for textual PDFs in auto mode.
+- `-EN`, `--engine-nontextual` (default: marker): Engine for non-textual PDFs in auto mode.
+- `-o`, `--out` DIR (default: alongside input): Output directory.
+- `-f`, `--output-format` (md|txt, default: md): Fast path output format (Marker always md).
+- `-B`, `--tables`: Extract tables to `<stem>.tables.md` via Camelot.
+- `-b`, `--tables-mode` (auto|stream|lattice, default: stream): Camelot mode (`auto` tries lattice then stream).
+- `-i`, `--images`: Enable image extraction in the Marker path.
+- `-I`, `--no-images`: Explicitly disable image extraction.
+- `-c`, `--min-chars` INT (default: 100): Minimum chars/page to treat as textual.
+- `-r`, `--min-ratio` FLOAT (default: 0.2): Minimum ratio of textual pages.
+- `-S`, `--include` GLOB: Include pattern(s) on relative paths; use `/` (repeatable).
+- `-X`, `--exclude` GLOB: Exclude pattern(s) on relative paths; use `/` (repeatable).
+- `-p`, `--progress`: Show incremental progress (pages/slices).
+- `-n`, `--dry-run`: Log actions only; do not write outputs or run Marker.
+- `-L`, `--log-level` (DEBUG|INFO|WARNING|ERROR|CRITICAL, default: INFO): Logging threshold.
+- `-q`, `--quiet`: Set log level to ERROR (overrides mode).
+- `-v`, `--verbose`: Set log level to DEBUG (overrides mode).
+- `-J`, `--log-json`: Emit JSON logs (ts, level, message).
+- `-LF`, `--log-file` PATH: Append logs to a file (1MB simple rotation).
+- `-C`, `--config` FILE: Load TOML/YAML/JSON config; CLI overrides config.
+- `-E`, `--env` KEY=VALUE: Set env var(s) for this run (repeatable).
+- `-w`, `--no-warn-unknown-env`: Suppress warnings for unknown env keys.
+- `-T`, `--torch-device` VALUE: Set `TORCH_DEVICE` (e.g., `cpu`, `cuda`, `cuda:0`, `mps`, `auto`).
+- `-O`, `--ocr-engine` VALUE: Set `OCR_ENGINE` (`None` or `surya`).
+- `-P`, `--pytorch-alloc-conf` K:V[,K:V...] : Set `PYTORCH_CUDA_ALLOC_CONF` (e.g., `caching_allocator:1,pooled:1,nmalloc:3,heuristic:1`).
+- `-G`, `--cuda-visible-devices` VALUE: Set `CUDA_VISIBLE_DEVICES` GPU index list, e.g., `0`, `0,1`, `3`.
+- `-t`, `--timeout` INT: Marker subprocess timeout (seconds).
+- `-x`, `--retries` INT: Retries for Marker subprocess.
+- `-R`, `--resume`: Skip PDFs whose outputs already exist.
+- `-D`, `--check-deps` (with `-y`, `--yes`): Check/install optional deps; `-y` assumes yes.
+- `-V`, `--version`: Show version and exit.
 
 Example
 `
@@ -254,14 +251,9 @@ python smart-pdf-md.py . 40 -m marker -M -o out -i -p --output-format md \
   - Exclude drafts anywhere: `-X "**/*draft*.pdf"`
   - Include vendor files by name: `-S "vendor-*.pdf"`
 
-## Build & Test Matrix
+## Development
 
-- Tests (CI): Ubuntu (ubuntu-latest) on Python 3.11, 3.12, 3.13
-- Builds (CI): Windows, Ubuntu, macOS (one-file binaries)
-- Releases (GH Releases):
-  - Linux: x86_64 (ubuntu-latest), ARM64 (ubuntu-22.04-arm64)
-  - macOS: x86_64 (macos-13), ARM64 (macos-14)
-  - Windows: x86_64 (windows-latest)
+See [development](docs/development.md) for build, test, and CI details.
 
 ## Dependencies & pip-tools
 
@@ -328,15 +320,6 @@ Convenience: requirements-optional.txt
 - Kraken: install the `kraken` CLI and its models; ensure it’s on PATH
 - GROBID: run a GROBID server; set `GROBID_URL=https://host:port`
 
-## CI speed-ups and binary checks
-
-- Pip caching covers requirements*.in/txt and pyproject.toml
-- Optional `USE_UV=1` enables the `uv` installer for faster setup
-- Optional `ENABLE_OCR_SMOKE=1` runs an OCR smoke test when OCRmyPDF is available
-- PyInstaller bundles PyMuPDF resources via `--collect-all fitz`
-- CI validates fast-path extraction on a generated PDF (table-like lines + embedded image)
-- Optional job “Test Optional Engines” installs `requirements-optional.txt` and Poppler/Ghostscript, then runs optional-engine tests
-
 ## Troubleshooting
 
 - No output created
@@ -349,6 +332,10 @@ Convenience: requirements-optional.txt
   - Use `-S/--include` and `-X/--exclude` globs to narrow scope.
 - Logs hard to parse
   - Use `--log-json` and `--log-file run.log` for structured logging and archival.
+
+## License
+
+Licensed under the [MIT License](license.md).
 
 
 
