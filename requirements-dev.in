@@ -10,3 +10,4 @@ build
 twine
 pip-tools
 mypy
+docling

@@ -269,7 +269,11 @@ jobs:
           python -m pip install pyinstaller pymupdf marker-pdf PyYAML
       - name: Build binary
         run: |
-          pyinstaller -F --strip -n smart-pdf-md --collect-all fitz src/smart_pdf_md/__main__.py
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            pyinstaller -F -n smart-pdf-md --collect-all fitz src/smart_pdf_md/__main__.py
+          else
+            pyinstaller -F --strip -n smart-pdf-md --collect-all fitz src/smart_pdf_md/__main__.py
+          fi
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:

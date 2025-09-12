@@ -39,7 +39,7 @@ MOCK = os.environ.get("SMART_PDF_MD_MARKER_MOCK", "0") == "1"
 MOCK_FAIL = os.environ.get("SMART_PDF_MD_MARKER_MOCK_FAIL", "0") == "1"
 IMAGES = os.environ.get("SMART_PDF_MD_IMAGES", "0") == "1"
 OUTDIR = os.environ.get("SMART_PDF_MD_OUTPUT_DIR")
-MIN_CHARS = int(os.environ.get("SMART_PDF_MD_TEXT_MIN_CHARS", "100"))
+MIN_CHARS = int(os.environ.get("SMART_PDF_MD_TEXT_MIN_CHARS", "10"))
 MIN_RATIO = float(os.environ.get("SMART_PDF_MD_TEXT_MIN_RATIO", "0.2"))
 MOCK_FAIL_IF_SLICE_GT = int(os.environ.get("SMART_PDF_MD_MOCK_FAIL_IF_SLICE_GT", "0"))
 DRY_RUN = os.environ.get("SMART_PDF_MD_DRY_RUN", "0") == "1"
@@ -431,7 +431,17 @@ def convert_via_ocrmypdf(pdf: str, outdir: str | Path) -> int:
         if rc != 0 or not ocr_pdf.exists():
             log(f"[ERROR] ocrmypdf rc={rc}", level="ERROR")
             return 4
-        return convert_text(str(ocr_pdf), str(outdir))
+        rc = convert_text(str(ocr_pdf), str(outdir))
+        if rc == 0:
+            ext = ".txt" if OUTPUT_FORMAT == "txt" else ".md"
+            src = Path(outdir) / (ocr_pdf.stem + ext)
+            dst = Path(outdir) / (Path(pdf).stem + ext)
+            if src != dst:
+                try:
+                    src.replace(dst)
+                except Exception:
+                    pass
+        return rc
 
 
 def convert_via_layout(pdf: str, outdir: str | Path) -> int:
@@ -919,14 +929,16 @@ def convert_via_docling(pdf: str, outdir: str | Path) -> int:
     Requires the `docling` package. Produces markdown via Docling's converter.
     """
     try:
-        from docling.document_converter import DocumentConverter, DocumentInput
-    except Exception:
+        from docling.document_converter import DocumentConverter
+    except ImportError:
         log("[ERROR] python package 'docling' not installed", level="ERROR")
+        return 4
+    except Exception as e:  # pragma: no cover - best effort
+        log(f"[ERROR] docling import failed: {e!r}", level="ERROR")
         return 4
     try:
         conv = DocumentConverter()
-        di = DocumentInput.with_pdf(str(pdf))
-        res = conv.convert(di)
+        res = conv.convert(str(pdf))
         md = res.document.export_to_markdown()
     except Exception as e:  # pragma: no cover - best effort
         log(f"[ERROR] docling conversion failed: {e!r}", level="ERROR")
