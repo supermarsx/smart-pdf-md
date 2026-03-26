@@ -1,26 +1,205 @@
 # Optional engines and features used by smart-pdf-md
 # Install with: pip install -r requirements-optional.txt
-
-markdownify        # poppler html->md
-pdfminer.six       # pdfminer engine
-pdfplumber         # pdfplumber engine
-pymupdf4llm        # layout engine
-docling            # docling engine
-camelot-py[cv]     # table extraction (lattice support)
-pandas             # tables to markdown rendering
-ocrmypdf           # OCR preprocessing engine
-pypdf              # pypdf engine
-pypdfium2          # pypdfium2 engine
-pytesseract        # OCR (Tesseract)
-pdf2image          # rasterization for OCR
-Pillow             # imaging for OCR
-python-doctr       # deep OCR engine (heavy)
-unstructured       # unstructured partition engine
-tabula-py          # table extraction via Java Tabula
-requests           # grobid client HTTP
-borb               # borb engine
-pdfrw              # pdfrw engine
-pdfquery           # pdfquery engine
-easyocr            # OCR engine
-kraken             # OCR engine (CLI wrapper)
-
+accelerate==1.13.0
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.3
+aiosignal==1.4.0
+annotated-doc==0.0.4
+annotated-types==0.7.0
+antlr4-python3-runtime==4.9.3
+anyascii==0.3.3
+atpublic==7.0.0
+attrs==26.1.0
+backoff==2.2.1
+beautifulsoup4==4.14.3
+borb==3.0.7
+camelot-py[cv]==1.0.9
+cattrs==26.1.0
+certifi==2026.2.25
+cffi==2.0.0
+chardet==7.3.0
+charset-normalizer==3.4.6
+click==8.2.1
+colorlog==6.10.1
+coremltools==8.3.0
+cryptography==46.0.6
+cssselect==1.4.0
+dataclasses-json==0.6.7
+defusedxml==0.7.1
+deprecated==1.3.1
+deprecation==2.1.0
+dill==0.4.1
+distro==1.9.0
+docling==2.81.0
+docling-core[chunking]==2.70.2
+docling-ibm-models==3.12.0
+docling-parse==5.6.1
+easyocr==1.7.2
+emoji==2.15.0
+et-xmlfile==2.0.0
+faker==40.11.1
+filelock==3.25.2
+filetype==1.2.0
+flatbuffers==25.12.19
+flufl-lock==9.0.0
+fonttools==4.62.1
+fpdf2==2.8.7
+frozenlist==1.8.0
+fsspec[http]==2025.12.0
+h5py==3.16.0
+hf-xet==1.4.2
+html5lib==1.1
+htrmopo==0.5
+huggingface-hub==0.36.2
+idna==3.11
+imageio==2.37.3
+img2pdf==0.6.3
+iso639-lang==2.6.3
+jinja2==3.1.6
+joblib==1.5.3
+jsonlines==4.0.0
+jsonpath-python==1.1.5
+jsonref==1.1.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+kraken==6.0.3
+langdetect==1.0.9
+latex2mathml==3.79.0
+lazy-loader==0.5
+lightning==2.4.0
+lightning-utilities==0.15.3
+llvmlite==0.46.0
+lxml==6.0.2
+markdown==3.10.2
+markdown-it-py==4.0.0
+markdownify==1.2.2
+marko==2.2.2
+markupsafe==3.0.3
+marshmallow==3.26.2
+mdurl==0.1.2
+ml-dtypes==0.5.4
+mpire[dill]==2.10.2
+mpmath==1.3.0
+multidict==6.7.1
+multiprocess==0.70.19
+mypy-extensions==1.1.0
+networkx==3.6.1
+ninja==1.13.0
+nltk==3.9.4
+numba==0.64.0
+numpy==2.0.2
+nvidia-cublas-cu12==12.8.4.1
+nvidia-cuda-cupti-cu12==12.8.90
+nvidia-cuda-nvrtc-cu12==12.8.93
+nvidia-cuda-runtime-cu12==12.8.90
+nvidia-cudnn-cu12==9.10.2.21
+nvidia-cufft-cu12==11.3.3.83
+nvidia-cufile-cu12==1.13.1.3
+nvidia-curand-cu12==10.3.9.90
+nvidia-cusolver-cu12==11.7.3.90
+nvidia-cusparse-cu12==12.5.8.93
+nvidia-cusparselt-cu12==0.7.1
+nvidia-nccl-cu12==2.27.5
+nvidia-nvjitlink-cu12==12.8.93
+nvidia-nvshmem-cu12==3.3.20
+nvidia-nvtx-cu12==12.8.90
+ocrmypdf==17.4.0
+olefile==0.47
+omegaconf==2.3.0
+onnx==1.20.1
+onnxruntime==1.24.4
+opencv-python==4.13.0.92
+opencv-python-headless==4.13.0.92
+openpyxl==3.1.5
+packaging==24.2
+pandas==3.0.1
+pdf2image==1.17.0
+pdfminer-six==20251230
+pdfplumber==0.11.9
+pdfquery==0.4.3
+pdfrw==0.4
+pi-heif==1.3.0
+pikepdf==10.5.1
+pillow==12.1.1
+platformdirs==4.9.4
+pluggy==1.6.0
+polyfactory==3.3.0
+propcache==0.4.1
+protobuf==7.34.1
+psutil==7.2.2
+pyaml==26.2.1
+pyarrow==23.0.1
+pyclipper==1.4.0
+pycparser==3.0
+pydantic==2.12.5
+pydantic-core==2.41.5
+pydantic-settings==2.13.1
+pygments==2.19.2
+pylatexenc==2.10
+pymupdf==1.27.2.2
+pymupdf-layout==1.27.2.2
+pymupdf4llm==1.27.2.2
+pypdf==3.17.4
+pypdfium2==5.6.0
+pyquery==2.0.1
+pytesseract==0.3.13
+python-bidi==0.6.7
+python-dateutil==2.9.0.post0
+python-doctr==1.0.1
+python-docx==1.2.0
+python-dotenv==1.2.2
+python-iso639==2026.1.31
+python-magic==0.4.27
+python-oxmsg==0.0.2
+python-pptx==1.0.2
+pytorch-lightning==2.6.1
+pyyaml==6.0.3
+rapidfuzz==3.14.3
+rapidocr==3.7.0
+referencing==0.37.0
+regex==2026.2.28
+requests==2.33.0
+rich==14.0.0
+roman==5.2
+rpds-py==0.30.0
+rtree==1.4.1
+safetensors[numpy,torch]==0.7.0
+scikit-image==0.24.0
+scikit-learn==1.5.2
+scipy==1.13.1
+semchunk==3.2.5
+shapely==2.0.7
+shellingham==1.5.4
+sickle==0.7.0
+six==1.17.0
+soupsieve==2.8.3
+sympy==1.14.0
+tabula-py==2.10.0
+tabulate==0.10.0
+threadpoolctl==3.5.0
+tifffile==2026.3.3
+tokenizers==0.22.2
+torch==2.9.0
+torchmetrics==1.9.0
+torchvision==0.24.0
+tqdm==4.67.3
+transformers==4.57.6
+tree-sitter==0.25.2
+tree-sitter-c==0.24.1
+tree-sitter-javascript==0.25.0
+tree-sitter-python==0.25.0
+tree-sitter-typescript==0.23.2
+triton==3.5.0
+typer==0.21.2
+typing-extensions==4.15.0
+typing-inspect==0.9.0
+typing-inspection==0.4.2
+uharfbuzz==0.53.3
+unstructured==0.18.32
+unstructured-client==0.21.0
+urllib3==2.6.3
+validators==0.35.0
+webencodings==0.5.1
+wrapt==2.1.2
+xlsxwriter==3.2.9
+yarl==1.23.0
