@@ -15,6 +15,8 @@ attrs==25.3.0
     #   jsonlines
     #   jsonschema
     #   referencing
+backports-tarfile==1.2.0
+    # via jaraco-context
 beautifulsoup4==4.13.5
     # via docling
 build==1.3.0
@@ -91,6 +93,8 @@ idna==3.10
     # via requests
 imageio==2.37.0
     # via scikit-image
+importlib-metadata==9.0.0
+    # via keyring
 iniconfig==2.1.0
     # via pytest
 jaraco-classes==3.4.0
@@ -282,7 +286,7 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pytest==8.4.2
+pytest==9.0.3
     # via
     #   -r requirements-dev.in
     #   pytest-cov
@@ -440,6 +444,8 @@ wheel==0.45.1
     # via pip-tools
 xlsxwriter==3.2.5
     # via python-pptx
+zipp==3.23.1
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
